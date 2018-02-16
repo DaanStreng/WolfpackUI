@@ -52,7 +52,7 @@ Element.prototype.wpuiFill = function(baseObject){
             else if(child.attr("wpui-object")){
                 var forKey = child.attr("wpui-object");
                 if(forKey && baseObject[forKey] && typeof baseObject[forKey] == "object"){
-                    child.datalock(baseObject[forKey]);
+                    child.datalock(baseObject[forKey]); 
                 }
             }
             else if (child.attr("wpui-if")){

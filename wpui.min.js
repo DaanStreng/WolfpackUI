@@ -31,8 +31,12 @@ Element.prototype.wpuiFill = function(baseObject){
             for(var i = 0;i<items.length;i++){
                 var key = items[i];
                 var value;
-                if(baseObject[key]){
-                    value = baseObject[key];
+                if (typeof baseObject == "object"){
+                    if(baseObject[key]){
+                        value = baseObject[key];
+                    }
+                }else if (key === "value"){
+                    value = baseObject;
                 }
                 htmlContent = htmlContent.replace("{{"+key+"}}",value);
             }
@@ -65,7 +69,7 @@ Element.prototype.wpuiFill = function(baseObject){
     }
 }
 Element.prototype.wpuiIf = function(dataObject,key){
-    var value = dataObject[key];
+    var value = checkValidity(key,dataObject);;
     var isfalseString = (value === 'false');
     
     var ifContent = $(this).data("wpuiIfContent");
@@ -86,7 +90,7 @@ Element.prototype.wpuiIf = function(dataObject,key){
             }
             if($(this).attr("wpui-elseif")){
                 var key2 = $(this).attr("wpui-elseif");
-                var value2 = dataObject[key2];
+                var value2 = checkValidity(key2,dataObject);
                 var isfalseString = (value2 === 'false');
                 
                 var ifElseContent = $(this).data("wpuiIfContent");
@@ -98,6 +102,9 @@ Element.prototype.wpuiIf = function(dataObject,key){
                     $(this).empty();
                     return;
                 }
+                
+              
+                
                 
                 if(value2&&!isfalseString){
                     foundTrue = true;
@@ -138,6 +145,14 @@ Element.prototype.wpuiIf = function(dataObject,key){
         });
         this.wpuiFill(dataObject);
     }
+}
+function checkValidity(key,object){
+ 
+        var tt = false;
+        key = "tt = object."+key+";";
+        eval(key);
+        return tt;
+   
 }
 
 Element.prototype.wpuiFor = function(dataArray){

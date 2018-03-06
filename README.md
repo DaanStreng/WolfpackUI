@@ -85,6 +85,27 @@ when either the parent element is closed or a new if-block is started.
 </div>
 ```
 
+## nested objects and properties
+It is completely fine to use the nested values of objects like
+
+```javascript
+var object = {foo:{bar:{name:"foobar"}}}
+$("#selector").datalock(object);
+```
+
+```html
+<div id="selector">
+  <h1>
+    {{foo.bar.name}}
+  </h1>
+</div>
+```
+This will yeild the expeced result.
+Note that the engine will try to fill out every templated variable.
+This means that when a variable name cannot be filled out with the values from a child object, it will try to do so with values from it's parent.
+If this is not the behaviour you expect try matching your expectations with what is happening, that's way easier than changing what's happening.
+
+
 ## Important when using UI-events
 Whenver any value of an object changes this wil cause a re-render of part of your UI.
 So if you link a click handler to an element using jquery like 

@@ -2,6 +2,7 @@ Element.prototype.datalockObjectChanged = function(property, oldval, newval) {
     var datalock = $(this).data("datalock");
     this.wpuiFill(datalock);
     return newval;
+    var d = 1;
 }
 Element.prototype.wpuiFill = function(baseObject) {
     var me = $(this);

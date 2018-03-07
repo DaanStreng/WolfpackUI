@@ -1,65 +1,35 @@
-/*
- * object.watch polyfill
- *
- * 2012-04-03
- *
- * By Eli Grey, http://eligrey.com
- * Public Domain.
- * NO WARRANTY EXPRESSED OR IMPLIED. USE AT YOUR OWN RISK.
- */
+//Object.watch polyfill
+//Variables have been minified
+//Basically just adds getters and setters to every property you start watching
 
-// object.watch
-if (!Object.prototype.watch) {
-	Object.defineProperty(Object.prototype, "watch", {
-		  enumerable: false
-		, configurable: true
-		, writable: false
-		, value: function (prop,object, handler) {
-		   
-		    if(this[prop] && this[prop].constructor === Array){
-		        if(!this[prop].oldPush)
-		            this[prop].oldPush = this[prop].push;
-		        this[prop].push = function(element){
-		            var result = this.oldPush(element);
-		            handler.call(object, prop, this,this);
-		            return result;
-		        }
-		    }
-			var
-			  oldval = this[prop]
-			, newval = oldval
-			, getter = function () {
-				return newval;
-			}
-			, setter = function (val) {
-				oldval = newval;
-				newval = val;
-				return newval = handler.call(object, prop, oldval, val);
-			}
-			;
-			
-			if (delete this[prop]) { // can't watch constants
-				Object.defineProperty(this, prop, {
-					  get: getter
-					, set: setter
-					, enumerable: true
-					, configurable: true
-				});
-			}
-		}
-	});
-}
-
-// object.unwatch
-if (!Object.prototype.unwatch) {
-	Object.defineProperty(Object.prototype, "unwatch", {
-		  enumerable: false
-		, configurable: true
-		, writable: false
-		, value: function (prop) {
-			var val = this[prop];
-			delete this[prop]; // remove accessors
-			this[prop] = val;
-		}
-	});
-}
+Object.prototype.watch || Object.defineProperty(Object.prototype, "watch", {
+    enumerable: !1,
+    writable: !1,
+    configurable: !0,
+    value: function(t, e, r) {
+        this[t] && this[t].constructor === Array && (this[t].oldPush || (this[t].oldPush = this[t].push), this[t].push = function(i) {
+            var n = this.oldPush(i);
+            return r.call(e, t, this, this), n
+        });
+        var i = this[t],
+            n = i;
+        delete this[t] && Object.defineProperty(this, t, {
+            get: function() {
+                return n
+            },
+            set: function(h) {
+                return i = n, n = h, n = r.call(e, t, i, h)
+            },
+            enumerable: !0,
+            configurable: !0
+        })
+    }
+}), Object.prototype.unwatch || Object.defineProperty(Object.prototype, "unwatch", {
+    enumerable: !1,
+    writable: !1,
+    configurable: !0,
+    value: function(t) {
+        var e = this[t];
+        delete this[t], this[t] = e
+    }
+});

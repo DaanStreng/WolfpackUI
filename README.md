@@ -85,7 +85,7 @@ when either the parent element is closed or a new if-block is started.
 </div>
 ```
 
-## nested objects and properties
+### nested objects and properties
 It is completely fine to use the nested values of objects like
 
 ```javascript
@@ -105,6 +105,35 @@ Note that the engine will try to fill out every templated variable.
 This means that when a variable name cannot be filled out with the values from a child object, it will try to do so with values from it's parent.
 If this is not the behaviour you expect try matching your expectations with what is happening, that's way easier than changing what's happening.
 
+### Stop using the datalock.
+Of course we can imagine a situation in which we don't want the datalock to keep going through all the child elements.<br/>
+For this reason we have wpui-stop
+```javascript
+var object = {foo:"bar"};
+$("#selector").datalock(object);
+```
+
+```html
+<div id="selector">
+  <h4>
+    {{foo}}
+  </h4>
+  <h4 wpui-stop="true">
+    <!-- or wpui-stop=1 or just wpui-stop -->
+    {{foo}}
+  </h4>
+</div>
+```
+This will result in <br/>
+<div id="selector">
+  <h4>
+    bar
+  </h4>
+  <h4 wpui-stop="true">
+    <!-- or wpui-stop=1 or just wpui-stop -->
+    {{foo}}
+  </h4>
+</div>
 
 ## Important when using UI-events
 Whenver any value of an object changes this wil cause a re-render of part of your UI.

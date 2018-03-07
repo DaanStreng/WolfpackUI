@@ -7,11 +7,18 @@ to objects. When the object changes, the HTML changes.
 
 ## How to use
 ### Basics
-To hook an object to an element:
+You can hook an object to an Element, a jQuery object, or a NodeList
+So to hook an object to an element:
 ```javascript
 //To connect an object to an element just do this
 var object = {foo:"hello",bar:"world"};
 $("#selector").datalock(object);
+//or
+document.querySelector("#selector").datalock(object);
+//or
+document.querySelectorAll("#selector").datalock(object);
+//or
+document.getElementById("selector").datalock(object);
 ```
 To make sure the element shows the element
 ```html
@@ -84,6 +91,8 @@ when either the parent element is closed or a new if-block is started.
   </div>
 </div>
 ```
+Please note that for a wpui-if attribute, the value of the attribute gets processed as if it is code.
+So you can use whatever equation you wish in there
 
 ### nested objects and properties
 It is completely fine to use the nested values of objects like
@@ -103,7 +112,25 @@ $("#selector").datalock(object);
 This will yeild the expeced result.
 Note that the engine will try to fill out every templated variable.
 This means that when a variable name cannot be filled out with the values from a child object, it will try to do so with values from it's parent.
-If this is not the behaviour you expect try matching your expectations with what is happening, that's way easier than changing what's happening.
+If this is not the behaviour you expect try matching your expectations with what is happening, that's way easier than changing what's happening.<br/>
+<br/>
+<b>IMPORTANT<br/>
+Nested variables do not work within wpui-for attributes!!</b><br/>
+To fix this issue use wpui-object
+
+```javascript
+var object = {foo:{bar:["hello","world"]}}
+$("#selector").datalock(object);
+```
+
+```html
+<div id="selector">
+  <div wpui-for"bar" wpui-object"foo">
+    <p>{{value}}</p>
+  </div>
+</div>
+```
+
 
 ### Stop using the datalock.
 Of course we can imagine a situation in which we don't want the datalock to keep going through all the child elements.<br/>

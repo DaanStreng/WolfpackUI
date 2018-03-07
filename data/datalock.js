@@ -340,7 +340,10 @@ Element.prototype.wpuiFor = function(dataArray) {
     for (var i = 0; i < dataArray.length; i++) {
         var element = originalContent;
         element = me.append(element);
-        element.datalock(dataArray[i]);
+        console.log(element,element.constructor);
+        if(element.constructor != Text)
+            element.datalock(dataArray[i]);
+        else element.data = (this.replaceVariablesInString(element.data,dataArray[i],undefined));
     }
 }
 Element.prototype.datalock = function(dataobject) {
@@ -366,12 +369,6 @@ Element.prototype.datalock = function(dataobject) {
             this.wpuiFor(dataobject);
         }
     }
-    else if (this.attr("wpui-object")) {
-        var forKey = this.attr("wpui-object");
-        if (forKey && dataobject && typeof dataobject == "object") {
-            this.datalock(dataobject);
-        }
-    }
     else if (this.attr("wpui-if")) {
 
         this.wpuiIf(dataobject, this.attr("wpui-if"));
@@ -380,7 +377,11 @@ Element.prototype.datalock = function(dataobject) {
         this.wpuiFill(dataobject);
     }
     else this.wpuiFill(dataobject);
-
+}
+NodeList.prototype.datalock = function(dataobject){
+    this.forEach(function(me){
+       me.datalock(dataobject); 
+    });
 }
 
 function wpui_checkValidity(key, object) {

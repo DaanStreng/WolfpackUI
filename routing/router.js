@@ -44,16 +44,16 @@ export class Router {
         this.loadHeaders();
         var me = this;
         window.addEventListener("popstate", function(e) {
-            me.SetPageFromUrl(window.location.pathname);
+            me.SetPageFromUrl(window.location.pathname, true);
         });
-        
+
     }
 
     get Container() {
         return this.container;
     }
-    getPageFromURL(requestedPath){
-        
+    getPageFromURL(requestedPath) {
+
         requestedPath = requestedPath.replace("/" + this.basePath, "");
         requestedPath = requestedPath.replace(this.basePath + "/", "");
         requestedPath = requestedPath.trim();
@@ -72,24 +72,27 @@ export class Router {
         }
         return actualPage;
     }
-    SetPageFromUrl(url){
+    SetPageFromUrl(url, noPush) {
         var actualPage = this.getPageFromURL(url);
         this.currentFrame.setPage(actualPage);
-        var stateObj = { page:actualPage };
-        window.history.pushState(stateObj, actualPage, url);
+        var stateObj = {
+            page: actualPage
+        };
+        if (noPush == undefined || !noPush)
+            window.history.pushState(stateObj, actualPage, url);
     }
     Route() {
         var actualPage = this.getPageFromURL(document.location.pathname.replace("/" + this.basePath + "/", ""));
         var framePath = this.basePath + "/frames/" + this.frame + "/" + this.frame + "." + this.defaultFileExtension;
-         var me = this;
+        var me = this;
         import (document.location.origin + "/" + framePath).then(({
             default: frameBase
         }) => {
             var frame = new frameBase(me.basePath);
             me.currentFrame = frame;
-            frame.addOnPartLoadedHandlers(me,me.framePartLoaded);
+            frame.addOnPartLoadedHandlers(me, me.framePartLoaded);
             me.clearContainer();
-           
+
             frame.getContent().then(html => {
                 me.container.innerHTML = me.container.innerHTML + html;
                 frame.setPage(actualPage);
@@ -99,28 +102,28 @@ export class Router {
         });
 
     }
-    framePartLoaded(){
-        if(this.catchNavigation){
+    framePartLoaded() {
+        if (this.catchNavigation) {
             var me = this;
-            for (var ls = document.links, numLinks = ls.length, i=0; i<numLinks; i++){
+            for (var ls = document.links, numLinks = ls.length, i = 0; i < numLinks; i++) {
                 var href = ls[i].href;
-                ls[i].onclick = function(){
-                    if(this.hostname != document.location.hostname){
+                ls[i].onclick = function() {
+                    if (this.hostname != document.location.hostname) {
                         return true;
                     }
-                    try{
+                    try {
                         me.SetPageFromUrl(this.pathname);
                         return false;
                     }
-                    catch(ex){
+                    catch (ex) {
                         return true;
                     }
-                    
-                } ;
+
+                };
             }
         }
     }
-    
+
     clearContainer() {
         this.container.innerHTML = "";
         if (this.container != document.body) {

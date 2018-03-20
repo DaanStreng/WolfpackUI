@@ -1,0 +1,6 @@
+# If requested resource exists as a file or directory, skip next two rules
+RewriteCond %{DOCUMENT_ROOT}/WolfpackUI/test/$1 -f 
+RewriteRule (.*) - [S=1]
+#
+# Else rewrite requests for non-existent resources to /index.php
+RewriteRule (.*) /WolfpackUI/test/index.html [L,QSA]

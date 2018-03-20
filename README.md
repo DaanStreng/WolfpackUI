@@ -1,6 +1,6 @@
 # WolfpackUI
 A tiny template thingy
-Requires JQuery 3.x
+
 ## What's it for?
 WolfpackUI is a very small HTML/javascript templating engine. It allows you to hook the contents of your HTML-elements
 to objects. When the object changes, the HTML changes.

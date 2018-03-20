@@ -1,0 +1,11 @@
+<script type="module">
+    import {Router} from '../routing/router.js';
+    //First argument is the name of the frame you're loading
+    //Second argument is the name of the default page it is loading (if you don't specify anything else in the url)
+    //Third argument is the base url where your actual website is located.
+    //Fourth argument (if present) is the default file extension ("js")
+    //Fifth argument (if present) is an array of html head elements
+    //so something like ["<link rel="stylesheet" href="/css/style.css">","<script src="/js/script.js" />"]
+    var router = new Router("musclefit","home","WolfpackUI/test");
+    router.Route();
+</script>

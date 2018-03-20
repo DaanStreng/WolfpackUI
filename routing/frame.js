@@ -19,10 +19,10 @@ export class Frame extends ContentBase {
     }
     getPage(pagename) {
         var me = this;
+            
         return new Promise(function(resolve, reject) {
-
             if (me.pages.includes(pagename)) {
-                
+           
                 var pagestring = pagename;
                 import (me.frameBase + "/pages/" + pagestring + "/" + pagestring + ".js").then(({
                     default: pagebase
@@ -31,7 +31,7 @@ export class Frame extends ContentBase {
                     resolve(page);
                 });
             }
-            else reject();
+            else{console.log("fuu"); reject()};
         });
 
     }

@@ -95,6 +95,7 @@ export class Router {
 
             frame.getContent().then(html => {
                 me.container.innerHTML = me.container.innerHTML + html;
+                frame.onLoaded();
                 frame.setPage(actualPage);
                  
             });

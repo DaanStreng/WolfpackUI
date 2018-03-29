@@ -5,6 +5,6 @@ export default class Boxing extends Page{
         super(basePath, framename, pagename);
     }
     onLoaded(){
-        
+        super.onLoaded();
     }
 }

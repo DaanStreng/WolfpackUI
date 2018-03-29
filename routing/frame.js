@@ -31,7 +31,7 @@ export class Frame extends ContentBase {
                     resolve(page);
                 });
             }
-            else{console.log("fuu"); reject()};
+            else{ reject()};
         });
 
     }

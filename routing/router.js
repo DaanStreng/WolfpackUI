@@ -33,9 +33,9 @@ export class Router {
         else {
             this.headers = [
                 
-                "<script src=\"https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0-alpha.4/js/materialize.min.js\"></script>",
+                "<script src=\"https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0-alpha.4/js/materialize.min.js\"><\/script>",
                 '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0-alpha.4/css/materialize.min.css">',
-                '<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>'
+                "<script src=\"https:\/\/ajax.googleapis.com\/ajax\/libs\/jquery\/3.3.1\/jquery.min.js\"><\/script>"
             ]
         }
         this.baseURL = document.location.hostname + this.basePath;
@@ -142,16 +142,16 @@ export class Router {
                  var div = document.createElement('div');
                   div.innerHTML = this.headers[i].trim();
                   var element = div.firstChild;
-                  console.log(element.tagName);
                   if(element.tagName.toLowerCase() == "script"){
                       if(element.src.indexOf("http")==-1){
                       import(this.basePath+element.src);
                       }
                       else import(element.src);
                   }
-                
-                  // Change this to div.childNodes to support multiple top-level nodes
-                  s.parentNode.insertBefore(div.firstChild,s);
+                  else{
+                      // Change this to div.childNodes to support multiple top-level nodes
+                      s.parentNode.insertBefore(div.firstChild,s);
+                  }
                   
             }
         }

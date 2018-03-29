@@ -7,6 +7,6 @@ export default class MuscleFit extends Frame{
         this.pages = ["home","boxing"];
     }
     onLoaded(){
-
+        console.log("innerhoi");
     }
 }

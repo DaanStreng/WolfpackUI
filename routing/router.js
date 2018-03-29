@@ -4,6 +4,33 @@ import {
     Frame
 }
 from './frame.js';
+
+document.globalEval = function() {
+    var scripts = document.getElementsByTagName("script");
+    for (var i = 0; i < scripts.length; i++) {
+        if (!scripts[i]._executed){
+            try{
+                if (scripts[i].src){
+                    import(scripts[i].src);
+                }
+                else if(scripts[i].type!="module"){
+                    eval(scripts[i].innerHTML);
+                }
+            }
+            catch(ex){
+                console.error(ex, scripts[i]);
+            }
+            scripts[i]._executed = true;
+        }
+    }
+}
+window.onload = function(){
+    var scripts = document.getElementsByTagName("script");
+    for (var i = 0; i < scripts.length; i++) {
+        scripts[i]._executed = true;
+    }
+}
+
 export class Router {
     constructor() {
         if (arguments[0])
@@ -82,7 +109,10 @@ export class Router {
             window.history.pushState(stateObj, actualPage, url);
     }
     Route() {
-         import('https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js');
+        var scripts = document.getElementsByTagName("script");
+        for (var i = 0; i < scripts.length; i++) {
+            scripts[i]._executed = true;
+        }
         var actualPage = this.getPageFromURL(document.location.pathname.replace("/" + this.basePath + "/", ""));
         var framePath = this.basePath + "/frames/" + this.frame + "/" + this.frame + "." + this.defaultFileExtension;
         var me = this;
@@ -98,14 +128,12 @@ export class Router {
                 //me.container.innerHTML = me.container.innerHTML + html;
                 var div = document.createElement('div');
                 div.innerHTML = html.trim();
-               
                 // Change this to div.childNodes to support multiple top-level nodes
-              /*  for (var i = 0; i < div.childNodes.length; i++) {
+                for (var i = 0; i < div.childNodes.length; i++) {
                     var element = div.childNodes[i];
-
                     me.container.appendChild(element);
-                }*/
-                $(me.container).append(html);
+                }
+                document.globalEval();
                 frame.onLoaded();
                 frame.setPage(actualPage);
 
@@ -117,6 +145,7 @@ export class Router {
     }
     
     framePartLoaded() {
+        document.globalEval();
         if (this.catchNavigation) {
             var me = this;
             for (var ls = document.links, numLinks = ls.length, i = 0; i < numLinks; i++) {
@@ -172,7 +201,6 @@ export class Router {
             this.container.appendChild(this.headers[i]);
         }
 
-
     }
     fetchURL(url, callback) {
         fetch(url)
@@ -183,4 +211,5 @@ export class Router {
                 callback(html);
             });
     }
+   
 }

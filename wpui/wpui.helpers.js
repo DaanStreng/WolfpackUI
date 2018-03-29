@@ -16,6 +16,7 @@ Element.prototype.data = function(propertyName, value) {
     }
 }
 
+
 // Replacement for jQuery's nextAll function
 Element.prototype.nextAll = function(filter) {
     var siblings = [];
@@ -79,9 +80,9 @@ NodeList.prototype.each = HTMLCollection.prototype.each = function(callback) {
 
 
 
-var WPUIBase = function(){
-    this.always = function(selector,event, callback){
-        $( "body").on(event, selector, callback );
+var WPUIBase = function() {
+    this.always = function(selector, event, callback) {
+        $("body").on(event, selector, callback);
     };
 };
 var WPUI = new WPUIBase();

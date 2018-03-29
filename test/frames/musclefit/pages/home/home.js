@@ -5,8 +5,7 @@ export default class Home extends Page{
         super(basePath, framename, pagename);
     }
     onLoaded(){
-       
-
+      
         super.onLoaded();
     }
 }

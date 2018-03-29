@@ -8,23 +8,23 @@ from './frame.js';
 document.globalEval = function() {
     var scripts = document.getElementsByTagName("script");
     for (var i = 0; i < scripts.length; i++) {
-        if (!scripts[i]._executed){
-            try{
-                if (scripts[i].src){
-                    import(scripts[i].src);
+        if (!scripts[i]._executed) {
+            try {
+                if (scripts[i].src) {
+                    import (scripts[i].src);
                 }
-                else if(scripts[i].type!="module"){
+                else if (scripts[i].type != "module") {
                     eval(scripts[i].innerHTML);
                 }
             }
-            catch(ex){
+            catch (ex) {
                 console.error(ex, scripts[i]);
             }
             scripts[i]._executed = true;
         }
     }
 }
-window.onload = function(){
+window.onload = function() {
     var scripts = document.getElementsByTagName("script");
     for (var i = 0; i < scripts.length; i++) {
         scripts[i]._executed = true;
@@ -143,7 +143,7 @@ export class Router {
         });
 
     }
-    
+
     framePartLoaded() {
         document.globalEval();
         if (this.catchNavigation) {
@@ -211,5 +211,5 @@ export class Router {
                 callback(html);
             });
     }
-   
+
 }

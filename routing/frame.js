@@ -4,6 +4,7 @@ import {
     ContentBase
 }
 from './contentBase.js'
+
 export class Frame extends ContentBase {
     constructor(basePath, framename, pageContentID) {
         super();

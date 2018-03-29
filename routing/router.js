@@ -32,7 +32,7 @@ export class Router {
             this.headers = arguments[5];
         else {
             this.headers = [
-                
+
                 "<script src=\"https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0-alpha.4/js/materialize.min.js\"><\/script>",
                 '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0-alpha.4/css/materialize.min.css">',
                 "<script src=\"https:\/\/ajax.googleapis.com\/ajax\/libs\/jquery\/3.3.1\/jquery.min.js\"><\/script>"
@@ -82,6 +82,7 @@ export class Router {
             window.history.pushState(stateObj, actualPage, url);
     }
     Route() {
+         import('https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js');
         var actualPage = this.getPageFromURL(document.location.pathname.replace("/" + this.basePath + "/", ""));
         var framePath = this.basePath + "/frames/" + this.frame + "/" + this.frame + "." + this.defaultFileExtension;
         var me = this;
@@ -94,16 +95,27 @@ export class Router {
             me.clearContainer();
 
             frame.getContent().then(html => {
-                me.container.innerHTML = me.container.innerHTML + html;
+                //me.container.innerHTML = me.container.innerHTML + html;
+                var div = document.createElement('div');
+                div.innerHTML = html.trim();
+                import('https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js');
+                // Change this to div.childNodes to support multiple top-level nodes
+              /*  for (var i = 0; i < div.childNodes.length; i++) {
+                    var element = div.childNodes[i];
+
+                    me.container.appendChild(element);
+                }*/
+                $(me.container).append(html);
                 frame.onLoaded();
                 frame.setPage(actualPage);
-                 
+
             });
 
 
         });
 
     }
+    
     framePartLoaded() {
         if (this.catchNavigation) {
             var me = this;
@@ -133,33 +145,34 @@ export class Router {
         }
     }
     loadHeaders() {
-        
+
         if (this.container == document.body) {
             for (var i = 0; i < this.headers.length; i++) {
-                
-                var s=document.getElementsByTagName('script')[0];
-              //  document.head.innerHTML += this.headers[i].trim();
-                
-                 var div = document.createElement('div');
-                  div.innerHTML = this.headers[i].trim();
-                  var element = div.firstChild;
-                  if(element.tagName.toLowerCase() == "script"){
-                      if(element.src.indexOf("http")==-1){
-                      import(this.basePath+element.src);
-                      }
-                      else import(element.src);
-                  }
-                  else{
-                      // Change this to div.childNodes to support multiple top-level nodes
-                      s.parentNode.insertBefore(div.firstChild,s);
-                  }
-                  
+
+                var s = document.getElementsByTagName('script')[0];
+                //  document.head.innerHTML += this.headers[i].trim();
+
+                var div = document.createElement('div');
+                div.innerHTML = this.headers[i].trim();
+                var element = div.firstChild;
+                if (element.tagName.toLowerCase() == "script") {
+                    if (element.src.indexOf("http") == -1) {
+                        import (this.basePath + element.src);
+                    }
+                    else import (element.src);
+                }
+                else {
+                    // Change this to div.childNodes to support multiple top-level nodes
+                    s.parentNode.insertBefore(div.firstChild, s);
+                }
+
             }
         }
         else {
             this.container.appendChild(this.headers[i]);
         }
-     
+
+
     }
     fetchURL(url, callback) {
         fetch(url)

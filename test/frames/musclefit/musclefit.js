@@ -6,4 +6,7 @@ export default class MuscleFit extends Frame{
         super(basePath,"musclefit","content");
         this.pages = ["home","boxing"];
     }
+    onLoaded(){
+
+    }
 }

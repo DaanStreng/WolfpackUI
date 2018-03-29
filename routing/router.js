@@ -98,7 +98,7 @@ export class Router {
                 //me.container.innerHTML = me.container.innerHTML + html;
                 var div = document.createElement('div');
                 div.innerHTML = html.trim();
-                import('https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js');
+               
                 // Change this to div.childNodes to support multiple top-level nodes
               /*  for (var i = 0; i < div.childNodes.length; i++) {
                     var element = div.childNodes[i];

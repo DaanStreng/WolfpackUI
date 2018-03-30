@@ -1,11 +1,24 @@
-<div id="flep">
-    Clockje poging
+<div id="flep" style="height:500px;width:300px">
+    <!-- Dropdown Trigger -->
+  <a class='dropdown-trigger btn' href='#' data-target='dropdown1'>Drop Me!</a>
+
+  <!-- Dropdown Structure -->
+  <ul id='dropdown1' class='dropdown-content'>
+    <li><a href="#!">one</a></li>
+    <li><a href="#!">two</a></li>
+    <li class="divider" tabindex="-1"></li>
+    <li><a href="#!">three</a></li>
+    <li><a href="#!"><i class="material-icons">view_module</i>four</a></li>
+    <li><a href="#!"><i class="material-icons">cloud</i>five</a></li>
+  </ul>
+        
 </div>
 <script>
 
 
        $(document).ready(function(){
-           $("flep").dropdown();
+$('.dropdown-trigger').dropdown();
+           console.log("got here");
        })
 
 </script>

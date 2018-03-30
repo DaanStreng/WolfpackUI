@@ -65,6 +65,7 @@ export class Router {
 
             ]
         }
+        this.headersLoaded = false;
         this.baseURL = document.location.hostname + this.basePath;
         this.container.Router = this;
         this.catchNavigation = true;
@@ -116,7 +117,7 @@ export class Router {
             var me = this;
             window.setTimeout(function() {
                 me.directRoute();
-            }, 300);
+            }, 1000);
         }
     }
     directRoute() {
@@ -185,15 +186,16 @@ export class Router {
         }
     }
     loadHeaders() {
-        setTimeout(function() {
-            this.headersLoaded = true;
+        var me = this;
+        window.setTimeout(function() {
+            me.headersLoaded = true;
         }, 500);
         if (this.container == document.body) {
             for (var i = 0; i < this.headers.length; i++) {
 
                 var s = document.getElementsByTagName('script')[0];
                 //  document.head.innerHTML += this.headers[i].trim();
-
+        
                 var div = document.createElement('div');
                 div.innerHTML = this.headers[i].trim();
                 var element = div.firstChild;
@@ -205,11 +207,13 @@ export class Router {
                             eval(script);
                         });
                     }
-                    else fetch(element.src).then(response => {
-                        return response.text();
-                    }).then(script => {
-                        eval(script);
-                    });
+                    else{
+                         fetch(element.src).then(response => {
+                            return response.text();
+                        }).then(script => {
+                            eval(script);
+                        });
+                    }
                 }
                 else {
                     // Change this to div.childNodes to support multiple top-level nodes

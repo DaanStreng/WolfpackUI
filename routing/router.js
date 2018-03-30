@@ -5,10 +5,11 @@ import {
 }
 from './frame.js';
 
-document.globalEval = function() {
+document.WPUIglobalEval = function() {
     var scripts = document.getElementsByTagName("script");
+   
     for (var i = 0; i < scripts.length; i++) {
-        if (!scripts[i]._executed) {
+        if (!scripts[i]._executed2) {
             try {
                 if (scripts[i].src) {
                     import (scripts[i].src);
@@ -20,14 +21,14 @@ document.globalEval = function() {
             catch (ex) {
                 console.error(ex, scripts[i]);
             }
-            scripts[i]._executed = true;
+            scripts[i]._executed2 = true;
         }
     }
 }
 window.onload = function() {
     var scripts = document.getElementsByTagName("script");
     for (var i = 0; i < scripts.length; i++) {
-        scripts[i]._executed = true;
+        scripts[i]._executed2 = true;
     }
 }
 
@@ -145,7 +146,8 @@ export class Router {
                     var element = div.childNodes[i];
                     me.container.appendChild(element);
                 }
-                document.globalEval();
+                
+                document.WPUIglobalEval();
                 frame.onLoaded();
                 frame.setPage(actualPage);
 
@@ -155,7 +157,8 @@ export class Router {
     }
 
     framePartLoaded() {
-        document.globalEval();
+
+        document.WPUIglobalEval();
 
         if (this.catchNavigation) {
             var me = this;
@@ -195,30 +198,23 @@ export class Router {
 
                 var s = document.getElementsByTagName('script')[0];
                 //  document.head.innerHTML += this.headers[i].trim();
-        
+
                 var div = document.createElement('div');
                 div.innerHTML = this.headers[i].trim();
                 var element = div.firstChild;
-                if (element.tagName.toLowerCase() == "script") {
-                    if (element.src.indexOf("http") == -1) {
-                        fetch(this.basePath + element.src).then(response => {
-                            return response.text();
-                        }).then(script => {
-                            eval(script);
-                        });
+                // Change this to div.childNodes to support multiple top-level nodes
+                if (element && element.src) {
+                    var script = document.createElement('script');
+                    script.onload = function() {
+
                     }
-                    else{
-                         fetch(element.src).then(response => {
-                            return response.text();
-                        }).then(script => {
-                            eval(script);
-                        });
-                    }
+                    script.src = element.src;
+                    document.getElementsByTagName("head")[0].appendChild(script);
                 }
                 else {
-                    // Change this to div.childNodes to support multiple top-level nodes
                     s.parentNode.insertBefore(div.firstChild, s);
                 }
+
 
             }
         }

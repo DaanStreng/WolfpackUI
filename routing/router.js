@@ -113,13 +113,13 @@ export class Router {
             this.directRoute();
         }
         else {
-            this.setTimeout(function() {
-                this.directRoute();
+            var me = this;
+            window.setTimeout(function() {
+                me.directRoute();
             }, 300);
         }
     }
     directRoute() {
-
         var scripts = document.getElementsByTagName("script");
         for (var i = 0; i < scripts.length; i++) {
             scripts[i]._executed = true;

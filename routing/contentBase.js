@@ -18,16 +18,19 @@ export class ContentBase {
         });
 
     }
-    
-    onLoaded(){
+
+    onLoaded() {
         this.onPartLoaded();
     }
-    onPartLoaded(){
-        this.onPartLoadedHandlers.forEach(function(callbackObject){
+    onPartLoaded() {
+        this.onPartLoadedHandlers.forEach(function(callbackObject) {
             callbackObject.func.call(callbackObject.caller);
         });
     }
-    addOnPartLoadedHandlers(caller,callback){
-        this.onPartLoadedHandlers.push({caller:caller,func:callback});
+    addOnPartLoadedHandlers(caller, callback) {
+        this.onPartLoadedHandlers.push({
+            caller: caller,
+            func: callback
+        });
     }
 }

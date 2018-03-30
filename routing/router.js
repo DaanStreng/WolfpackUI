@@ -109,6 +109,17 @@ export class Router {
             window.history.pushState(stateObj, actualPage, url);
     }
     Route() {
+        if (this.headersLoaded) {
+            this.directRoute();
+        }
+        else {
+            this.setTimeout(function() {
+                this.directRoute();
+            }, 300);
+        }
+    }
+    directRoute() {
+
         var scripts = document.getElementsByTagName("script");
         for (var i = 0; i < scripts.length; i++) {
             scripts[i]._executed = true;
@@ -139,13 +150,12 @@ export class Router {
 
             });
 
-
         });
-
     }
 
     framePartLoaded() {
         document.globalEval();
+
         if (this.catchNavigation) {
             var me = this;
             for (var ls = document.links, numLinks = ls.length, i = 0; i < numLinks; i++) {
@@ -165,6 +175,7 @@ export class Router {
                 };
             }
         }
+        this.currentFrame.loadElements();
     }
 
     clearContainer() {
@@ -174,7 +185,9 @@ export class Router {
         }
     }
     loadHeaders() {
-
+        setTimeout(function() {
+            this.headersLoaded = true;
+        }, 500);
         if (this.container == document.body) {
             for (var i = 0; i < this.headers.length; i++) {
 

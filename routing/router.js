@@ -5,32 +5,51 @@ import {
 }
     from './frame.js';
 
-document.WPUIglobalEval = function() {
-    var scripts = document.getElementsByTagName("script");
-
-    for (var i = 0; i < scripts.length; i++) {
-        if (!scripts[i]._executed2) {
-            try {
-                if (scripts[i].src) {
-                    import (scripts[i].src);
-                }
-                else if (scripts[i].type != "module") {
-                    eval(scripts[i].innerHTML);
-                }
+/**
+ * Attempts to execute a script and returns a Promise for when it is done executing
+ *
+ * @param script
+ * @returns Promise
+ */
+document.executeScript = (script) => {
+    let ret = null;
+    if (!script._setToExecute) {
+        try {
+            if (script.src) {
+                ret = import(script.src);
             }
-            catch (ex) {
-                console.error(ex, scripts[i]);
+            else if (script.type !== "module") {
+                ret = new Promise((resolve, reject) => {
+                    eval(script.innerHTML);
+                    resolve();
+                });
             }
-            scripts[i]._executed2 = true;
+            else {
+                console.warn("Bad script: ", script);
+            }
         }
+        catch (ex) {
+            console.error(ex, script);
+        }
+        script._setToExecute = true;
     }
-}
-window.onload           = function() {
-    var scripts = document.getElementsByTagName("script");
-    for (var i = 0; i < scripts.length; i++) {
-        scripts[i]._executed2 = true;
+    return ret;
+};
+
+document.WPUIglobalEval = () => {
+    const scripts = document.getElementsByTagName("script");
+
+    const scriptPromises = scripts.map((script) => document.executeScript(script));
+    return Promise.all(scriptPromises);
+};
+
+window.onload = () => {
+    const scripts = document.getElementsByTagName("script");
+    for (let i = 0; i < scripts.length; i++) {
+        console.log(scripts[i]);
+        scripts[i]._setToExecute = true;
     }
-}
+};
 
 export class Router {
     constructor() {
@@ -51,7 +70,7 @@ export class Router {
 
         if (arguments[3]) {
             this.defaultFileExtension = arguments[3];
-            if (this.defaultFileExtension.indexOf(".") == 0) {
+            if (this.defaultFileExtension.indexOf(".") === 0) {
                 this.defaultFileExtension = this.defaultFileExtension.substr(1, this.defaultFileExtension.length - 1);
             }
         }
@@ -78,8 +97,8 @@ export class Router {
         this.container.Router = this;
         this.catchNavigation  = true;
         this.loadHeaders();
-        var me = this;
-        window.addEventListener("popstate", function(e) {
+        const me = this;
+        window.addEventListener("popstate", () => {
             me.SetPageFromUrl(window.location.pathname, true);
         });
 
@@ -94,13 +113,13 @@ export class Router {
         requestedPath = requestedPath.replace("/" + this.basePath, "");
         requestedPath = requestedPath.replace(this.basePath + "/", "");
         requestedPath = requestedPath.trim();
-        if (requestedPath.indexOf("/") == 0) {
+        if (requestedPath.indexOf("/") === 0) {
             requestedPath = requestedPath.substr(1, requestedPath.length - 1);
         }
-        var slashSplits = requestedPath.split("/");
-        var actualPage  = slashSplits[slashSplits.length - 1];
-        if (actualPage.trim() == 0) {
-            if (slashSplits > 1) {
+        const slashSplits = requestedPath.split("/");
+        let actualPage    = slashSplits[slashSplits.length - 1];
+        if (actualPage.trim().length === 0) {
+            if (slashSplits.length > 1) {
                 actualPage = slashSplits[slashSplits.length - 2];
             }
             else {
@@ -111,12 +130,12 @@ export class Router {
     }
 
     SetPageFromUrl(url, noPush) {
-        var actualPage = this.getPageFromURL(url);
+        const actualPage = this.getPageFromURL(url);
         this.currentFrame.setPage(actualPage);
-        var stateObj = {
+        const stateObj = {
             page: actualPage
         };
-        if (noPush == undefined || !noPush) {
+        if (noPush === undefined || !noPush) {
             window.history.pushState(stateObj, actualPage, url);
         }
     }
@@ -126,45 +145,43 @@ export class Router {
             this.directRoute();
         }
         else {
-            var me = this;
-            window.setTimeout(function() {
-                me.directRoute();
-            }, 1000);
+            const me = this;
+            window.setTimeout(() => me.directRoute(), 1);
         }
     }
 
     directRoute() {
-        var scripts = document.getElementsByTagName("script");
-        for (var i = 0; i < scripts.length; i++) {
+        const scripts = document.getElementsByTagName("script");
+        for (let i = 0; i < scripts.length; i++) {
             scripts[i]._executed = true;
         }
-        var actualPage = this.getPageFromURL(document.location.pathname.replace("/" + this.basePath + "/", ""));
-        var framePath  = this.basePath + "/frames/" + this.frame + "/" + this.frame + "." + this.defaultFileExtension;
-        var me         = this;
+        const actualPage = this.getPageFromURL(document.location.pathname.replace("/" + this.basePath + "/", ""));
+        const framePath  = this.basePath + "/frames/" + this.frame + "/" + this.frame + "." + this.defaultFileExtension;
+        const me         = this;
         import (document.location.origin + "/" + framePath).then(({
                                                                       default: frameBase
                                                                   }) => {
-            var frame       = new frameBase(me.basePath);
+            const frame     = new frameBase(me.basePath);
             me.currentFrame = frame;
             frame.addOnPartLoadedHandlers(me, me.framePartLoaded);
             me.clearContainer();
 
             frame.getContent().then(html => {
                 //me.container.innerHTML = me.container.innerHTML + html;
-                var div       = document.createElement('div');
+                const div     = document.createElement('div');
                 div.innerHTML = html.trim();
                 // Change this to div.childNodes to support multiple top-level nodes
-                for (var i = 0; i < div.childNodes.length; i++) {
-                    var element = div.childNodes[i];
+                for (let i = 0; i < div.childNodes.length; i++) {
+                    const element = div.childNodes[i];
                     me.container.appendChild(element);
                 }
 
-                document.WPUIglobalEval();
-                frame.onLoaded();
-                frame.setPage(actualPage);
-
+                // Wait for all scripts to have loaded
+                document.WPUIglobalEval().then(() => {
+                    frame.onLoaded();
+                    frame.setPage(actualPage);
+                });
             });
-
         });
     }
 
@@ -173,11 +190,10 @@ export class Router {
         document.WPUIglobalEval();
 
         if (this.catchNavigation) {
-            var me = this;
-            for (var ls = document.links, numLinks = ls.length, i = 0; i < numLinks; i++) {
-                var href      = ls[i].href;
+            const me = this;
+            for (let ls = document.links, numLinks = ls.length, i = 0; i < numLinks; i++) {
                 ls[i].onclick = function() {
-                    if (this.hostname != document.location.hostname) {
+                    if (this.hostname !== document.location.hostname) {
                         return true;
                     }
                     try {
@@ -196,55 +212,46 @@ export class Router {
 
     clearContainer() {
         this.container.innerHTML = "";
-        if (this.container != document.body) {
+        if (this.container !== document.body) {
             this.loadHeaders();
         }
     }
 
     loadHeaders() {
-        var me = this;
-        window.setTimeout(function() {
+        const me = this;
+        window.setTimeout(() => {
             me.headersLoaded = true;
         }, 500);
-        if (this.container == document.body) {
-            for (var i = 0; i < this.headers.length; i++) {
+        if (this.container === document.body) {
+            for (let i = 0; i < this.headers.length; i++) {
 
-                var s = document.getElementsByTagName('script')[0];
+                const s = document.getElementsByTagName('script')[0];
                 //  document.head.innerHTML += this.headers[i].trim();
 
-                var div       = document.createElement('div');
+                const div     = document.createElement('div');
                 div.innerHTML = this.headers[i].trim();
-                var element   = div.firstChild;
+                const element = div.firstChild;
                 // Change this to div.childNodes to support multiple top-level nodes
                 if (element && element.src) {
-                    var script    = document.createElement('script');
-                    script.onload = function() {
-
-                    }
+                    const script  = document.createElement('script');
+                    script.onload = () => {
+                    };
                     script.src    = element.src;
                     document.getElementsByTagName("head")[0].appendChild(script);
                 }
                 else {
                     s.parentNode.insertBefore(div.firstChild, s);
                 }
-
-
             }
         }
         else {
             this.container.appendChild(this.headers[i]);
         }
-
     }
 
     fetchURL(url, callback) {
         fetch(url)
-            .then(function(response) {
-                return response.text();
-            })
-            .then(function(html) {
-                callback(html);
-            });
+            .then((response) => response.text())
+            .then((html) => callback(html));
     }
-
 }

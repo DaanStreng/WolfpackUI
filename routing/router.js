@@ -7,7 +7,7 @@ from './frame.js';
 
 document.WPUIglobalEval = function() {
     var scripts = document.getElementsByTagName("script");
-   
+
     for (var i = 0; i < scripts.length; i++) {
         if (!scripts[i]._executed2) {
             try {
@@ -25,15 +25,24 @@ document.WPUIglobalEval = function() {
         }
     }
 }
-window.onload = function() {
-    var scripts = document.getElementsByTagName("script");
-    for (var i = 0; i < scripts.length; i++) {
-        scripts[i]._executed2 = true;
-    }
-}
+
+
 
 export class Router {
     constructor() {
+        var me2 = this;
+        var scripts = document.getElementsByTagName("script");
+        for (var i = 0; i < scripts.length; i++) {
+            scripts[i]._executed2 = true;
+            var checkLocalLoad = function(){
+                scripts[i]._executed2 = true;
+                me2.checkHeadersLoaded();
+            }
+            scripts[i].onload = checkLocalLoad();
+            window.setTimeout(checkLocalLoad,1000);
+        }
+
+
         if (arguments[0])
             this.frame = arguments[0];
         if (arguments[1])
@@ -146,7 +155,7 @@ export class Router {
                     var element = div.childNodes[i];
                     me.container.appendChild(element);
                 }
-                
+
                 document.WPUIglobalEval();
                 frame.onLoaded();
                 frame.setPage(actualPage);
@@ -190,38 +199,50 @@ export class Router {
     }
     loadHeaders() {
         var me = this;
-        window.setTimeout(function() {
-            me.headersLoaded = true;
-        }, 500);
+        var containingElement = this.container;
         if (this.container == document.body) {
-            for (var i = 0; i < this.headers.length; i++) {
+            containingElement = document.getElementsByTagName("head")[0];
+        }
+        for (var i = 0; i < this.headers.length; i++) {
 
-                var s = document.getElementsByTagName('script')[0];
-                //  document.head.innerHTML += this.headers[i].trim();
+            var s = document.getElementsByTagName('script')[0];
+            //  document.head.innerHTML += this.headers[i].trim();
 
-                var div = document.createElement('div');
-                div.innerHTML = this.headers[i].trim();
-                var element = div.firstChild;
-                // Change this to div.childNodes to support multiple top-level nodes
-                if (element && element.src) {
-                    var script = document.createElement('script');
-                    script.onload = function() {
-
+            var div = document.createElement('div');
+            div.innerHTML = this.headers[i].trim();
+            var element = div.firstChild;
+            // Change this to div.childNodes to support multiple top-level nodes
+            if (element && element.src) {
+                var script = document.createElement('script');
+                script.onload = function() {
+                    this._executed2 = true;
+                    if (me.checkHeadersLoaded()) {
+                        me.headersLoaded = true;
+                        if (me.onHeadersLoaded != null) {
+                            me.onHeadersLoaded();
+                        }
                     }
-                    script.src = element.src;
-                    document.getElementsByTagName("head")[0].appendChild(script);
                 }
-                else {
-                    s.parentNode.insertBefore(div.firstChild, s);
-                }
+                script.src = element.src;
+                containingElement.appendChild(script);
+            }
+            else {
+                containingElement.appendChild(element);
+            }
 
 
+        }
+
+
+    }
+    checkHeadersLoaded() {
+        var tags = document.getElementsByTagName("script");
+        for (var i = 0; i < tags.length; i++) {
+            if (!tags[i]._executed2) {
+                return false;
             }
         }
-        else {
-            this.container.appendChild(this.headers[i]);
-        }
-
+        return true;
     }
     fetchURL(url, callback) {
         fetch(url)

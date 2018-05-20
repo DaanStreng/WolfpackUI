@@ -1,14 +1,67 @@
 'use strict';
 /* global fetch */
-import {
-    Frame
-}
-    from './frame.js';
+import {Frame} from './frame.js';
+
+document.markOriginalScriptsAsExecuted = () => {
+    const scripts = document.getElementsByTagName("script");
+    for (let i = 0; i < scripts.length; i++) {
+        console.log(scripts[i]);
+        scripts[i]._setToExecute = true;
+    }
+};
+
+const domReady = new Promise((resolve) => {
+    // expose fulfilled state holder to outer scope
+    document.addEventListener('DOMContentLoaded', resolve);
+});
+
+const postDomReady = new Promise((resolve => {
+    domReady.then(() => {
+        document.markOriginalScriptsAsExecuted();
+        resolve();
+    })
+}));
+
+// A Promise for window.onload
+const loadReady = new Promise((resolve) => {
+    // expose fulfilled state holder to outer scope
+    document.addEventListener('load', resolve);
+});
+
+/**
+ * Attempts to execute a script and returns a Promise for when it is done executing
+ *
+ -
+ * @param script
+ * @returns Promise
+ */
+document.executeScript = (script) => {
+    let ret = null;
+    console.log(script);
+    if (!script._setToExecute) {
+        try {
+            if (script.src) {
+                ret = import(script.src);
+            }
+            else if (script.type !== "module") {
+                ret = new Promise((resolve, reject) => {
+                    eval(script.innerHTML);
+                    resolve();
+                });
+            }
+        }
+        catch (ex) {
+            console.error(ex, script);
+        }
+        script._setToExecute = true;
+    }
+    return ret;
+};
 
 document.WPUIglobalEval = function() {
-    const scripts = document.getElementsByTagName("script");
+    var scripts = document.getElementsByTagName("script");
 
-    for (let i = 0; i < scripts.length; i++) {
+    for (var i = 0; i < scripts.length; i++) {
         if (!scripts[i]._executed2) {
             try {
                 if (scripts[i].src) {
@@ -18,14 +71,41 @@ document.WPUIglobalEval = function() {
                     eval(scripts[i].innerHTML);
                 }
             }
-            catch (ex) {
-                console.error(ex, scripts[i]);
+        else
+            if (script.type !== "module") {
+                ret = new Promise((resolve, reject) => {
+                    eval(script.innerHTML);
+                    resolve();
+                });
             }
-            scripts[i]._executed2 = true;
+            else {
+                console.warn("Bad script: ", script);
+            }
         }
+    catch
+        (ex)
+        {
+            console.error(ex, script);
+        }
+        script._setToExecute = true;
     }
 };
 
+document.WPUIglobalEval = () => {
+
+    // Be sure that when we are here, our after-DOM-loaded tasks are done
+    return postDomReady.then(() => {
+
+        // Get all the scripts
+        const scripts = Array.from(document.getElementsByTagName("script"));
+
+        // Get the promises for all the scripts to run
+        const scriptPromises = scripts.map((script) => document.executeScript(script));
+
+        // Return a promise that resolves when all the scripts finish running
+        return Promise.all(scriptPromises);
+    });
+};
 
 export class Router {
     constructor() {
@@ -59,7 +139,7 @@ export class Router {
 
         if (arguments[3]) {
             this.defaultFileExtension = arguments[3];
-            if (this.defaultFileExtension.indexOf(".") == 0) {
+            if (this.defaultFileExtension.indexOf(".") === 0) {
                 this.defaultFileExtension = this.defaultFileExtension.substr(1, this.defaultFileExtension.length - 1);
             }
         }
@@ -87,10 +167,10 @@ export class Router {
         this.catchNavigation  = true;
         this.loadHeaders();
         const me = this;
-        window.addEventListener("popstate", function(e) {
+        window.addEventListener("popstate", () => {
             me.SetPageFromUrl(window.location.pathname, true);
         });
-
+        console.log('constructor done');
     }
 
     get Container() {
@@ -102,13 +182,13 @@ export class Router {
         requestedPath = requestedPath.replace("/" + this.basePath, "");
         requestedPath = requestedPath.replace(this.basePath + "/", "");
         requestedPath = requestedPath.trim();
-        if (requestedPath.indexOf("/") == 0) {
+        if (requestedPath.indexOf("/") === 0) {
             requestedPath = requestedPath.substr(1, requestedPath.length - 1);
         }
         const slashSplits = requestedPath.split("/");
         let actualPage    = slashSplits[slashSplits.length - 1];
-        if (actualPage.trim() == 0) {
-            if (slashSplits > 1) {
+        if (actualPage.trim().length === 0) {
+            if (slashSplits.length > 1) {
                 actualPage = slashSplits[slashSplits.length - 2];
             }
             else {
@@ -124,7 +204,7 @@ export class Router {
         const stateObj = {
             page: actualPage
         };
-        if (noPush == undefined || !noPush) {
+        if (noPush === undefined || !noPush) {
             window.history.pushState(stateObj, actualPage, url);
         }
     }
@@ -135,45 +215,37 @@ export class Router {
         }
         else {
             const me = this;
-            window.setTimeout(function() {
-                me.directRoute();
-            }, 1000);
+            window.setTimeout(() => me.directRoute(), 1);
         }
     }
 
     directRoute() {
-        const scripts = document.getElementsByTagName("script");
-        for (let i = 0; i < scripts.length; i++) {
-            scripts[i]._executed = true;
-        }
         const actualPage = this.getPageFromURL(document.location.pathname.replace("/" + this.basePath + "/", ""));
         const framePath  = this.basePath + "/frames/" + this.frame + "/" + this.frame + "." + this.defaultFileExtension;
         const me         = this;
-        import (document.location.origin + "/" + framePath).then(({
-                                                                      default: frameBase
-                                                                  }) => {
-            const frame     = new frameBase(me.basePath);
-            me.currentFrame = frame;
-            frame.addOnPartLoadedHandlers(me, me.framePartLoaded);
-            me.clearContainer();
+        import (document.location.origin + "/" + framePath)
+            .then(({default: frameBase}) => {
+                const frame     = new frameBase(me.basePath);
+                me.currentFrame = frame;
+                frame.addOnPartLoadedHandlers(me, me.framePartLoaded);
+                me.clearContainer();
 
-            frame.getContent().then(html => {
-                //me.container.innerHTML = me.container.innerHTML + html;
-                const div     = document.createElement('div');
-                div.innerHTML = html.trim();
-                // Change this to div.childNodes to support multiple top-level nodes
-                for (let i = 0; i < div.childNodes.length; i++) {
-                    const element = div.childNodes[i];
-                    me.container.appendChild(element);
-                }
+                frame.getContent().then(html => {
+                    const div     = document.createElement('div');
+                    div.innerHTML = html.trim();
+                    // Change this to div.childNodes to support multiple top-level nodes
+                    for (let i = 0; i < div.childNodes.length; i++) {
+                        const element = div.childNodes[i];
+                        me.container.appendChild(element);
+                    }
 
-                document.WPUIglobalEval();
-                frame.onLoaded();
-                frame.setPage(actualPage);
-
+                    // Wait for all scripts to have loaded
+                    Promise.all([document.WPUIglobalEval(), loadReady]).then(() => {
+                        frame.onLoaded();
+                        frame.setPage(actualPage);
+                    });
+                });
             });
-
-        });
     }
 
     framePartLoaded() {
@@ -183,11 +255,9 @@ export class Router {
         if (this.catchNavigation) {
             const me = this;
             const ls = document.links, numLinks = ls.length;
-            let i    = 0;
-            for (; i < numLinks; i++) {
-                const href    = ls[i].href;
+            for (let i = 0; i < numLinks; i++) {
                 ls[i].onclick = function() {
-                    if (this.hostname != document.location.hostname) {
+                    if (this.hostname !== document.location.hostname) {
                         return true;
                     }
                     try {
@@ -206,7 +276,7 @@ export class Router {
 
     clearContainer() {
         this.container.innerHTML = "";
-        if (this.container != document.body) {
+        if (this.container !== document.body) {
             this.loadHeaders();
         }
     }
@@ -262,12 +332,7 @@ export class Router {
 
     fetchURL(url, callback) {
         fetch(url)
-            .then(function(response) {
-                return response.text();
-            })
-            .then(function(html) {
-                callback(html);
-            });
+            .then((response) => response.text())
+            .then((html) => callback(html));
     }
-
 }

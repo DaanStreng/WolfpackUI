@@ -6,9 +6,9 @@ import {
     from './frame.js';
 
 document.WPUIglobalEval = function() {
-    var scripts = document.getElementsByTagName("script");
+    const scripts = document.getElementsByTagName("script");
 
-    for (var i = 0; i < scripts.length; i++) {
+    for (let i = 0; i < scripts.length; i++) {
         if (!scripts[i]._executed2) {
             try {
                 if (scripts[i].src) {
@@ -24,13 +24,13 @@ document.WPUIglobalEval = function() {
             scripts[i]._executed2 = true;
         }
     }
-}
+};
 window.onload           = function() {
-    var scripts = document.getElementsByTagName("script");
-    for (var i = 0; i < scripts.length; i++) {
+    const scripts = document.getElementsByTagName("script");
+    for (let i = 0; i < scripts.length; i++) {
         scripts[i]._executed2 = true;
     }
-}
+};
 
 export class Router {
     constructor() {
@@ -78,7 +78,7 @@ export class Router {
         this.container.Router = this;
         this.catchNavigation  = true;
         this.loadHeaders();
-        var me = this;
+        const me = this;
         window.addEventListener("popstate", function(e) {
             me.SetPageFromUrl(window.location.pathname, true);
         });
@@ -97,8 +97,8 @@ export class Router {
         if (requestedPath.indexOf("/") == 0) {
             requestedPath = requestedPath.substr(1, requestedPath.length - 1);
         }
-        var slashSplits = requestedPath.split("/");
-        var actualPage  = slashSplits[slashSplits.length - 1];
+        const slashSplits = requestedPath.split("/");
+        let actualPage    = slashSplits[slashSplits.length - 1];
         if (actualPage.trim() == 0) {
             if (slashSplits > 1) {
                 actualPage = slashSplits[slashSplits.length - 2];
@@ -111,9 +111,9 @@ export class Router {
     }
 
     SetPageFromUrl(url, noPush) {
-        var actualPage = this.getPageFromURL(url);
+        const actualPage = this.getPageFromURL(url);
         this.currentFrame.setPage(actualPage);
-        var stateObj = {
+        const stateObj = {
             page: actualPage
         };
         if (noPush == undefined || !noPush) {
@@ -126,7 +126,7 @@ export class Router {
             this.directRoute();
         }
         else {
-            var me = this;
+            const me = this;
             window.setTimeout(function() {
                 me.directRoute();
             }, 1000);
@@ -134,28 +134,28 @@ export class Router {
     }
 
     directRoute() {
-        var scripts = document.getElementsByTagName("script");
-        for (var i = 0; i < scripts.length; i++) {
+        const scripts = document.getElementsByTagName("script");
+        for (let i = 0; i < scripts.length; i++) {
             scripts[i]._executed = true;
         }
-        var actualPage = this.getPageFromURL(document.location.pathname.replace("/" + this.basePath + "/", ""));
-        var framePath  = this.basePath + "/frames/" + this.frame + "/" + this.frame + "." + this.defaultFileExtension;
-        var me         = this;
+        const actualPage = this.getPageFromURL(document.location.pathname.replace("/" + this.basePath + "/", ""));
+        const framePath  = this.basePath + "/frames/" + this.frame + "/" + this.frame + "." + this.defaultFileExtension;
+        const me         = this;
         import (document.location.origin + "/" + framePath).then(({
                                                                       default: frameBase
                                                                   }) => {
-            var frame       = new frameBase(me.basePath);
+            const frame     = new frameBase(me.basePath);
             me.currentFrame = frame;
             frame.addOnPartLoadedHandlers(me, me.framePartLoaded);
             me.clearContainer();
 
             frame.getContent().then(html => {
                 //me.container.innerHTML = me.container.innerHTML + html;
-                var div       = document.createElement('div');
+                const div     = document.createElement('div');
                 div.innerHTML = html.trim();
                 // Change this to div.childNodes to support multiple top-level nodes
-                for (var i = 0; i < div.childNodes.length; i++) {
-                    var element = div.childNodes[i];
+                for (let i = 0; i < div.childNodes.length; i++) {
+                    const element = div.childNodes[i];
                     me.container.appendChild(element);
                 }
 
@@ -173,9 +173,11 @@ export class Router {
         document.WPUIglobalEval();
 
         if (this.catchNavigation) {
-            var me = this;
-            for (var ls = document.links, numLinks = ls.length, i = 0; i < numLinks; i++) {
-                var href      = ls[i].href;
+            const me = this;
+            const ls = document.links, numLinks = ls.length;
+            let i    = 0;
+            for (; i < numLinks; i++) {
+                const href    = ls[i].href;
                 ls[i].onclick = function() {
                     if (this.hostname != document.location.hostname) {
                         return true;
@@ -202,25 +204,25 @@ export class Router {
     }
 
     loadHeaders() {
-        var me = this;
+        const me = this;
         window.setTimeout(function() {
             me.headersLoaded = true;
         }, 500);
         if (this.container == document.body) {
-            for (var i = 0; i < this.headers.length; i++) {
+            for (let i = 0; i < this.headers.length; i++) {
 
-                var s = document.getElementsByTagName('script')[0];
+                const s = document.getElementsByTagName('script')[0];
                 //  document.head.innerHTML += this.headers[i].trim();
 
-                var div       = document.createElement('div');
+                const div     = document.createElement('div');
                 div.innerHTML = this.headers[i].trim();
-                var element   = div.firstChild;
+                const element = div.firstChild;
                 // Change this to div.childNodes to support multiple top-level nodes
                 if (element && element.src) {
-                    var script    = document.createElement('script');
+                    const script  = document.createElement('script');
                     script.onload = function() {
 
-                    }
+                    };
                     script.src    = element.src;
                     document.getElementsByTagName("head")[0].appendChild(script);
                 }

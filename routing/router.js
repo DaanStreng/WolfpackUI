@@ -58,39 +58,6 @@ document.executeScript = (script) => {
     return ret;
 };
 
-document.WPUIglobalEval = function() {
-    var scripts = document.getElementsByTagName("script");
-
-    for (var i = 0; i < scripts.length; i++) {
-        if (!scripts[i]._executed2) {
-            try {
-                if (scripts[i].src) {
-                    import (scripts[i].src);
-                }
-                else if (scripts[i].type != "module") {
-                    eval(scripts[i].innerHTML);
-                }
-            }
-        else
-            if (script.type !== "module") {
-                ret = new Promise((resolve, reject) => {
-                    eval(script.innerHTML);
-                    resolve();
-                });
-            }
-            else {
-                console.warn("Bad script: ", script);
-            }
-        }
-    catch
-        (ex)
-        {
-            console.error(ex, script);
-        }
-        script._setToExecute = true;
-    }
-};
-
 document.WPUIglobalEval = () => {
 
     // Be sure that when we are here, our after-DOM-loaded tasks are done
@@ -112,15 +79,14 @@ export class Router {
         const me2     = this;
         const scripts = document.getElementsByTagName("script");
         for (let i = 0; i < scripts.length; i++) {
-            scripts[i]._executed2 = true;
-            const checkLocalLoad  = function() {
-                scripts[i]._executed2 = true;
+            scripts[i]._setToExecute = true;
+            const checkLocalLoad     = function() {
+                scripts[i]._setToExecute = true;
                 me2.checkHeadersLoaded();
             };
-            scripts[i].onload     = checkLocalLoad();
+            scripts[i].onload        = checkLocalLoad();
             window.setTimeout(checkLocalLoad, 1000);
         }
-
 
         if (arguments[0]) {
             this.frame = arguments[0];
@@ -284,13 +250,10 @@ export class Router {
     loadHeaders() {
         const me              = this;
         let containingElement = this.container;
-        if (this.container == document.body) {
+        if (this.container === document.body) {
             containingElement = document.getElementsByTagName("head")[0];
         }
         for (let i = 0; i < this.headers.length; i++) {
-
-            const s = document.getElementsByTagName('script')[0];
-            //  document.head.innerHTML += this.headers[i].trim();
 
             const div     = document.createElement('div');
             div.innerHTML = this.headers[i].trim();
@@ -299,7 +262,7 @@ export class Router {
             if (element && element.src) {
                 const script  = document.createElement('script');
                 script.onload = function() {
-                    this._executed2 = true;
+                    this._setToExecute = true;
                     if (me.checkHeadersLoaded()) {
                         me.headersLoaded = true;
                         if (me.onHeadersLoaded != null) {
@@ -313,17 +276,13 @@ export class Router {
             else {
                 containingElement.appendChild(element);
             }
-
-
         }
-
-
     }
 
     checkHeadersLoaded() {
         const tags = document.getElementsByTagName("script");
         for (let i = 0; i < tags.length; i++) {
-            if (!tags[i]._executed2) {
+            if (!tags[i]._setToExecute) {
                 return false;
             }
         }

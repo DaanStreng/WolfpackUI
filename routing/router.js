@@ -2,6 +2,32 @@
 /* global fetch */
 import {Frame} from './frame.js';
 
+document.markOriginalScriptsAsExecuted = () => {
+    const scripts = document.getElementsByTagName("script");
+    for (let i = 0; i < scripts.length; i++) {
+        console.log(scripts[i]);
+        scripts[i]._setToExecute = true;
+    }
+};
+
+const domReady = new Promise((resolve) => {
+    // expose fulfilled state holder to outer scope
+    document.addEventListener('DOMContentLoaded', resolve);
+});
+
+const postDomReady = new Promise((resolve => {
+    domReady.then(() => {
+        document.markOriginalScriptsAsExecuted();
+        resolve();
+    })
+}));
+
+// A Promise for window.onload
+const loadReady = new Promise((resolve) => {
+    // expose fulfilled state holder to outer scope
+    document.addEventListener('load', resolve);
+});
+
 /**
  * Attempts to execute a script and returns a Promise for when it is done executing
  *
@@ -11,6 +37,7 @@ import {Frame} from './frame.js';
  */
 document.executeScript = (script) => {
     let ret = null;
+    console.log(script);
     if (!script._setToExecute) {
         try {
             if (script.src) {
@@ -21,9 +48,6 @@ document.executeScript = (script) => {
                     eval(script.innerHTML);
                     resolve();
                 });
-            }
-            else {
-                console.warn("Bad script: ", script);
             }
         }
         catch (ex) {
@@ -74,18 +98,20 @@ window.onload           = function() {
 };
 
 document.WPUIglobalEval = () => {
-    const scripts = document.getElementsByTagName("script");
 
-    const scriptPromises = scripts.map((script) => document.executeScript(script));
-    return Promise.all(scriptPromises);
+    // Be sure that when we are here, our after-DOM-loaded tasks are done
+    return postDomReady.then(() => {
+
+        // Get all the scripts
+        const scripts = Array.from(document.getElementsByTagName("script"));
+
+        // Get the promises for all the scripts to run
+        const scriptPromises = scripts.map((script) => document.executeScript(script));
+
+        // Return a promise that resolves when all the scripts finish running
+        return Promise.all(scriptPromises);
+    });
 };
-
-window.onload = () => {
-    const scripts = document.getElementsByTagName("script");
-    for (let i = 0; i < scripts.length; i++) {
-        console.log(scripts[i]);
-        scripts[i]._setToExecute = true;
-    }
 
 export class Router {
     constructor() {
@@ -137,7 +163,7 @@ export class Router {
         window.addEventListener("popstate", () => {
             me.SetPageFromUrl(window.location.pathname, true);
         });
-
+        console.log('constructor done');
     }
 
     get Container() {
@@ -187,38 +213,32 @@ export class Router {
     }
 
     directRoute() {
-        const scripts = document.getElementsByTagName("script");
-        for (let i = 0; i < scripts.length; i++) {
-            scripts[i]._executed = true;
-        }
         const actualPage = this.getPageFromURL(document.location.pathname.replace("/" + this.basePath + "/", ""));
         const framePath  = this.basePath + "/frames/" + this.frame + "/" + this.frame + "." + this.defaultFileExtension;
         const me         = this;
-        import (document.location.origin + "/" + framePath).then(({
-                                                                      default: frameBase
-                                                                  }) => {
-            const frame     = new frameBase(me.basePath);
-            me.currentFrame = frame;
-            frame.addOnPartLoadedHandlers(me, me.framePartLoaded);
-            me.clearContainer();
+        import (document.location.origin + "/" + framePath)
+            .then(({default: frameBase}) => {
+                const frame     = new frameBase(me.basePath);
+                me.currentFrame = frame;
+                frame.addOnPartLoadedHandlers(me, me.framePartLoaded);
+                me.clearContainer();
 
-            frame.getContent().then(html => {
-                //me.container.innerHTML = me.container.innerHTML + html;
-                const div     = document.createElement('div');
-                div.innerHTML = html.trim();
-                // Change this to div.childNodes to support multiple top-level nodes
-                for (let i = 0; i < div.childNodes.length; i++) {
-                    const element = div.childNodes[i];
-                    me.container.appendChild(element);
-                }
+                frame.getContent().then(html => {
+                    const div     = document.createElement('div');
+                    div.innerHTML = html.trim();
+                    // Change this to div.childNodes to support multiple top-level nodes
+                    for (let i = 0; i < div.childNodes.length; i++) {
+                        const element = div.childNodes[i];
+                        me.container.appendChild(element);
+                    }
 
-                // Wait for all scripts to have loaded
-                document.WPUIglobalEval().then(() => {
-                    frame.onLoaded();
-                    frame.setPage(actualPage);
+                    // Wait for all scripts to have loaded
+                    Promise.all([document.WPUIglobalEval(), loadReady]).then(() => {
+                        frame.onLoaded();
+                        frame.setPage(actualPage);
+                    });
                 });
             });
-        });
     }
 
     framePartLoaded() {

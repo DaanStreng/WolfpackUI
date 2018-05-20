@@ -1,13 +1,11 @@
 'use strict';
 /* global fetch */
-import {
-    Frame
-}
-    from './frame.js';
+import {Frame} from './frame.js';
 
 /**
  * Attempts to execute a script and returns a Promise for when it is done executing
  *
+ -
  * @param script
  * @returns Promise
  */
@@ -36,6 +34,45 @@ document.executeScript = (script) => {
     return ret;
 };
 
+document.WPUIglobalEval = function() {
+    var scripts = document.getElementsByTagName("script");
+
+    for (var i = 0; i < scripts.length; i++) {
+        if (!scripts[i]._executed2) {
+            try {
+                if (scripts[i].src) {
+                    import (scripts[i].src);
+                }
+                else if (scripts[i].type != "module") {
+                    eval(scripts[i].innerHTML);
+                }
+            }
+        else
+            if (script.type !== "module") {
+                ret = new Promise((resolve, reject) => {
+                    eval(script.innerHTML);
+                    resolve();
+                });
+            }
+            else {
+                console.warn("Bad script: ", script);
+            }
+        }
+    catch
+        (ex)
+        {
+            console.error(ex, script);
+        }
+        script._setToExecute = true;
+    }
+}
+window.onload           = function() {
+    var scripts = document.getElementsByTagName("script");
+    for (var i = 0; i < scripts.length; i++) {
+        scripts[i]._executed2 = true;
+    }
+};
+
 document.WPUIglobalEval = () => {
     const scripts = document.getElementsByTagName("script");
 
@@ -49,7 +86,6 @@ window.onload = () => {
         console.log(scripts[i]);
         scripts[i]._setToExecute = true;
     }
-};
 
 export class Router {
     constructor() {
@@ -191,7 +227,8 @@ export class Router {
 
         if (this.catchNavigation) {
             const me = this;
-            for (let ls = document.links, numLinks = ls.length, i = 0; i < numLinks; i++) {
+            const ls = document.links, numLinks = ls.length;
+            for (let i = 0; i < numLinks; i++) {
                 ls[i].onclick = function() {
                     if (this.hostname !== document.location.hostname) {
                         return true;

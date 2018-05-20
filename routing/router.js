@@ -25,15 +25,23 @@ document.WPUIglobalEval = function() {
         }
     }
 };
-window.onload           = function() {
-    const scripts = document.getElementsByTagName("script");
-    for (let i = 0; i < scripts.length; i++) {
-        scripts[i]._executed2 = true;
-    }
-};
+
 
 export class Router {
     constructor() {
+        const me2     = this;
+        const scripts = document.getElementsByTagName("script");
+        for (let i = 0; i < scripts.length; i++) {
+            scripts[i]._executed2 = true;
+            const checkLocalLoad  = function() {
+                scripts[i]._executed2 = true;
+                me2.checkHeadersLoaded();
+            };
+            scripts[i].onload     = checkLocalLoad();
+            window.setTimeout(checkLocalLoad, 1000);
+        }
+
+
         if (arguments[0]) {
             this.frame = arguments[0];
         }
@@ -204,39 +212,52 @@ export class Router {
     }
 
     loadHeaders() {
-        const me = this;
-        window.setTimeout(function() {
-            me.headersLoaded = true;
-        }, 500);
+        const me              = this;
+        let containingElement = this.container;
         if (this.container == document.body) {
-            for (let i = 0; i < this.headers.length; i++) {
+            containingElement = document.getElementsByTagName("head")[0];
+        }
+        for (let i = 0; i < this.headers.length; i++) {
 
-                const s = document.getElementsByTagName('script')[0];
-                //  document.head.innerHTML += this.headers[i].trim();
+            const s = document.getElementsByTagName('script')[0];
+            //  document.head.innerHTML += this.headers[i].trim();
 
-                const div     = document.createElement('div');
-                div.innerHTML = this.headers[i].trim();
-                const element = div.firstChild;
-                // Change this to div.childNodes to support multiple top-level nodes
-                if (element && element.src) {
-                    const script  = document.createElement('script');
-                    script.onload = function() {
+            const div     = document.createElement('div');
+            div.innerHTML = this.headers[i].trim();
+            const element = div.firstChild;
+            // Change this to div.childNodes to support multiple top-level nodes
+            if (element && element.src) {
+                const script  = document.createElement('script');
+                script.onload = function() {
+                    this._executed2 = true;
+                    if (me.checkHeadersLoaded()) {
+                        me.headersLoaded = true;
+                        if (me.onHeadersLoaded != null) {
+                            me.onHeadersLoaded();
+                        }
+                    }
+                };
+                script.src    = element.src;
+                containingElement.appendChild(script);
+            }
+            else {
+                containingElement.appendChild(element);
+            }
 
-                    };
-                    script.src    = element.src;
-                    document.getElementsByTagName("head")[0].appendChild(script);
-                }
-                else {
-                    s.parentNode.insertBefore(div.firstChild, s);
-                }
+
+        }
 
 
+    }
+
+    checkHeadersLoaded() {
+        const tags = document.getElementsByTagName("script");
+        for (let i = 0; i < tags.length; i++) {
+            if (!tags[i]._executed2) {
+                return false;
             }
         }
-        else {
-            this.container.appendChild(this.headers[i]);
-        }
-
+        return true;
     }
 
     fetchURL(url, callback) {

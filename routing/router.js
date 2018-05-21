@@ -2,91 +2,69 @@
 /* global fetch */
 import {Frame} from './frame.js';
 
-document.markOriginalScriptsAsExecuted = () => {
-    const scripts = document.getElementsByTagName("script");
-    for (let i = 0; i < scripts.length; i++) {
-        console.log(scripts[i]);
-        scripts[i]._setToExecute = true;
-    }
-};
+console.info('### Enable the \'Verbose\' log level to see debug messages. ###');
 
-const domReady = new Promise((resolve) => {
-    // expose fulfilled state holder to outer scope
-    document.addEventListener('DOMContentLoaded', resolve);
-});
+/**
+ * Promise for when the DOM is ready.
+ * This is equivalent to $(function() {}), as well as document.addEventListener('DOMContentLoaded', function() {}).
+ *
+ * @type {Promise<void>}
+ */
+document.readyStateInteractive = new Promise((resolve) => {
 
-const postDomReady = new Promise((resolve => {
-    domReady.then(() => {
-        document.markOriginalScriptsAsExecuted();
+    const finish = () => {
+        console.debug('Document readyState changed to "interactive", resolving promise.');
         resolve();
-    })
-}));
+    };
 
-// A Promise for window.onload
-const loadReady = new Promise((resolve) => {
-    // expose fulfilled state holder to outer scope
-    document.addEventListener('load', resolve);
+    // Make sure we listen on the load event to resolve the promise
+    document.addEventListener('readystatechange', () => {
+        if (document.readyState === "interactive") {
+            finish();
+        }
+    });
+
+    // Also check that the event hasn't fired already by checking the readyState
+    if (document.readyState === "interactive") {
+        finish();
+    }
 });
 
 /**
- * Attempts to execute a script and returns a Promise for when it is done executing
+ * Promise for when loading the page is fully complete as far as the browser is concerned.
+ * This is equivalent to window.onload, as well as window.addEventListener('load', function() {}).
  *
- -
- * @param script
- * @returns Promise
+ * @type {Promise<void>}
  */
-document.executeScript = (script) => {
-    let ret = null;
-    console.log(script);
-    if (!script._setToExecute) {
-        try {
-            if (script.src) {
-                ret = import(script.src);
-            }
-            else if (script.type !== "module") {
-                ret = new Promise((resolve, reject) => {
-                    eval(script.innerHTML);
-                    resolve();
-                });
-            }
+document.readyStateComplete = new Promise((resolve) => {
+
+    const finish = () => {
+        console.debug('Document readyState changed to "complete", resolving promise.');
+        resolve();
+    };
+
+    // Make sure we listen on the load event to resolve the promise
+    document.addEventListener('readystatechange', () => {
+        if (document.readyState === "complete") {
+            finish();
         }
-        catch (ex) {
-            console.error(ex, script);
-        }
-        script._setToExecute = true;
-    }
-    return ret;
-};
-
-document.WPUIglobalEval = () => {
-
-    // Be sure that when we are here, our after-DOM-loaded tasks are done
-    return postDomReady.then(() => {
-
-        // Get all the scripts
-        const scripts = Array.from(document.getElementsByTagName("script"));
-
-        // Get the promises for all the scripts to run
-        const scriptPromises = scripts.map((script) => document.executeScript(script));
-
-        // Return a promise that resolves when all the scripts finish running
-        return Promise.all(scriptPromises);
     });
-};
+
+    // Also check that the event hasn't fired already by checking the readyState
+    if (document.readyState === "complete") {
+        finish();
+    }
+});
 
 export class Router {
     constructor() {
-        const me2     = this;
-        const scripts = document.getElementsByTagName("script");
-        for (let i = 0; i < scripts.length; i++) {
-            scripts[i]._setToExecute = true;
-            const checkLocalLoad     = function() {
-                scripts[i]._setToExecute = true;
-                me2.checkHeadersLoaded();
-            };
-            scripts[i].onload        = checkLocalLoad();
-            window.setTimeout(checkLocalLoad, 1000);
-        }
+
+        /**
+         * Actions to do to the DOM as soon as it is loaded (readyStateInteractive)
+         *
+         * @type {function[]}
+         */
+        this.domActions = [Router.preventOriginalScriptsExec];
 
         if (arguments[0]) {
             this.frame = arguments[0];
@@ -120,27 +98,125 @@ export class Router {
         if (arguments[5]) {
             this.headers = arguments[5];
         } else {
-            this.headers = [
-                "<script src=\"https:\/\/ajax.googleapis.com\/ajax\/libs\/jquery\/3.3.1\/jquery.min.js\"><\/script>",
-                "<script src=\"https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0-beta/js/materialize.min.js\"><\/script>",
-                '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0-beta/css/materialize.min.css">',
-
-            ]
+            this.headers = this.constructor.getHeaders();
         }
         this.headersLoaded    = false;
-        this.baseURL          = document.location.hostname + this.basePath;
         this.container.Router = this;
         this.catchNavigation  = true;
         this.loadHeaders();
-        const me = this;
         window.addEventListener("popstate", () => {
-            me.SetPageFromUrl(window.location.pathname, true);
+            this.setPageFromUrl(window.location.pathname, true);
         });
-        console.log('constructor done');
+
+        /**
+         * Promise to indicate that WPUI router is done doing stuff to the DOM.
+         * Use this rather than DOMReady (readyStateInteractive) to ensure any routing business is done.
+         *
+         * @type {Promise<void>}
+         */
+        this.wpuiDOMActionsFinished = new Promise((resolve => {
+            document.readyStateInteractive.then(() => {
+                this.doDOMActions();
+                resolve();
+            })
+        }));
+
+        console.debug('Router constructor done.');
     }
 
-    get Container() {
-        return this.container;
+    /**
+     * Execute domActions
+     */
+    doDOMActions() {
+        this.domActions.forEach((f) => f());
+    }
+
+    /**
+     * Attempts to execute a script and returns a Promise for when it is done executing
+     *
+     -
+     * @param script
+     * @returns Promise
+     */
+    executeScript(script) {
+        let ret = null;
+
+        console.debug('Checking script: ', script);
+
+        if (!script._setToExecute) {
+            console.debug('Executing script: ', script);
+            try {
+                if (script.src) {
+                    ret = import(script.src);
+                }
+                else if (script.type !== "module") {
+                    ret = new Promise((resolve) => {
+                        eval(script.innerHTML);
+                        resolve();
+                    });
+                }
+            }
+            catch (ex) {
+                console.error(ex, script);
+            }
+            script._setToExecute = true;
+        }
+        return ret;
+    }
+
+    static getHeaders() {
+        return [
+            "<script src=\"https:\/\/ajax.googleapis.com\/ajax\/libs\/jquery\/3.3.1\/jquery.min.js\"><\/script>",
+            "<script src=\"https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0-beta/js/materialize.min.js\"><\/script>",
+            '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0-beta/css/materialize.min.css">',
+        ];
+    }
+
+    /**
+     * Formerly WPUIglobalEval. Checks and evaluates any new scripts, and returns a promise when they have been loaded.
+     *
+     * @returns {Promise<void>}
+     * @constructor
+     */
+    checkScripts() {
+
+        console.log('called checkScripts');
+
+        // Be sure that when we are here, our after-DOM-loaded tasks are done
+        return this.wpuiDOMActionsFinished.then(() => {
+
+            // Get all the scripts
+            const scripts = Array.from(document.getElementsByTagName("script"));
+
+            // Get the promises for all the scripts to run
+            const scriptPromises = scripts.map((script) => this.executeScript(script));
+
+            // Return a promise that resolves when all the scripts finish running
+            const finish = () => {
+                console.log('checkScripts promise being resolved');
+            };
+            return Promise.all(scriptPromises).then(finish);
+        });
+    };
+
+    /**
+     * Prevent any scripts that are already in the document from being executed twice by marking them.
+     */
+    static preventOriginalScriptsExec() {
+        console.debug('Called preventOriginalScriptsExec');
+
+        // Be sure that when we are here, the DOM (so all script tags) has been interpreted
+        document.readyStateInteractive.then(() => {
+
+            // Get all the scripts
+            const scripts = Array.from(document.getElementsByTagName("script"));
+
+            // Mark all scripts we can find right now as already executed by the browser.
+            scripts.forEach((script) => {
+                console.debug('Setting script as executed already: ', script);
+                script._setToExecute = true;
+            });
+        });
     }
 
     getPageFromURL(requestedPath) {
@@ -164,7 +240,7 @@ export class Router {
         return actualPage;
     }
 
-    SetPageFromUrl(url, noPush) {
+    setPageFromUrl(url, noPush) {
         const actualPage = this.getPageFromURL(url);
         this.currentFrame.setPage(actualPage);
         const stateObj = {
@@ -180,12 +256,12 @@ export class Router {
             this.directRoute();
         }
         else {
-            const me = this;
-            window.setTimeout(() => me.directRoute(), 1);
+            window.setTimeout(() => this.directRoute(), 1);
         }
     }
 
     directRoute() {
+        console.log('directRoute');
         const actualPage = this.getPageFromURL(document.location.pathname.replace("/" + this.basePath + "/", ""));
         const framePath  = this.basePath + "/frames/" + this.frame + "/" + this.frame + "." + this.defaultFileExtension;
         const me         = this;
@@ -197,8 +273,11 @@ export class Router {
                 me.clearContainer();
 
                 frame.getContent().then(html => {
+                    console.debug('Frame.getContent finished.');
+
                     const div     = document.createElement('div');
                     div.innerHTML = html.trim();
+
                     // Change this to div.childNodes to support multiple top-level nodes
                     for (let i = 0; i < div.childNodes.length; i++) {
                         const element = div.childNodes[i];
@@ -206,7 +285,10 @@ export class Router {
                     }
 
                     // Wait for all scripts to have loaded
-                    Promise.all([document.WPUIglobalEval(), loadReady]).then(() => {
+                    console.debug('Calling checkScripts from directRoute');
+                    const scriptsReady = me.checkScripts();
+                    Promise.all([scriptsReady, document.readyStateComplete]).then(() => {
+                        console.debug('Calling Frame.onLoaded');
                         frame.onLoaded();
                         frame.setPage(actualPage);
                     });
@@ -214,9 +296,14 @@ export class Router {
             });
     }
 
+    /**
+     * Runs after the frame has loaded some stuff.
+     */
     framePartLoaded() {
 
-        document.WPUIglobalEval();
+        console.debug('Calling checkScripts from framePartLoaded');
+        // noinspection JSIgnoredPromiseFromCall
+        this.checkScripts();
 
         if (this.catchNavigation) {
             const me = this;
@@ -227,7 +314,7 @@ export class Router {
                         return true;
                     }
                     try {
-                        me.SetPageFromUrl(this.pathname);
+                        me.setPageFromUrl(this.pathname);
                         return false;
                     }
                     catch (ex) {
@@ -263,11 +350,8 @@ export class Router {
                 const script  = document.createElement('script');
                 script.onload = function() {
                     this._setToExecute = true;
-                    if (me.checkHeadersLoaded()) {
+                    if (Router.checkHeadersLoaded()) {
                         me.headersLoaded = true;
-                        if (me.onHeadersLoaded != null) {
-                            me.onHeadersLoaded();
-                        }
                     }
                 };
                 script.src    = element.src;
@@ -279,7 +363,7 @@ export class Router {
         }
     }
 
-    checkHeadersLoaded() {
+    static checkHeadersLoaded() {
         const tags = document.getElementsByTagName("script");
         for (let i = 0; i < tags.length; i++) {
             if (!tags[i]._setToExecute) {

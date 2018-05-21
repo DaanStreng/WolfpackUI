@@ -59,12 +59,7 @@ document.readyStateComplete = new Promise((resolve) => {
 export class Router {
     constructor() {
 
-        /**
-         * Actions to do to the DOM as soon as it is loaded (readyStateInteractive)
-         *
-         * @type {function[]}
-         */
-        this.domActions = [Router.preventOriginalScriptsExec];
+        this._scriptLoadingPromises = new Set();
 
         if (arguments[0]) {
             this.frame = arguments[0];
@@ -91,19 +86,17 @@ export class Router {
             this.defaultFileExtension = "js";
         }
         if (arguments[4]) {
-            this.container = arguments[4];
+            this._container = arguments[4];
         } else {
-            this.container = document.body;
+            this._container = document.body;
         }
         if (arguments[5]) {
             this.headers = arguments[5];
         } else {
             this.headers = this.constructor.getHeaders();
         }
-        this.headersLoaded    = false;
-        this.container.Router = this;
-        this.catchNavigation  = true;
-        this.loadHeaders();
+        this.headersContainer.Router = this;
+        this.catchNavigation         = true;
         window.addEventListener("popstate", () => {
             this.setPageFromUrl(window.location.pathname, true);
         });
@@ -114,21 +107,56 @@ export class Router {
          *
          * @type {Promise<void>}
          */
-        this.wpuiDOMActionsFinished = new Promise((resolve => {
-            document.readyStateInteractive.then(() => {
-                this.doDOMActions();
-                resolve();
-            })
-        }));
+        this.wpuiDOMActionsFinished = document.readyStateInteractive.then(() => {
+
+            return this.doDOMActions();
+        });
 
         console.debug('Router constructor done.');
+    }
+
+    /**
+     * Returns a promise that resolves when all known scripts have been loaded
+     *
+     * @returns {Promise<[void]>}
+     */
+    get allScriptsLoaded() {
+        console.debug('Called allScriptsLoaded');
+
+        return Promise.all(this._scriptLoadingPromises);
+    }
+
+    /**
+     * Adds an array of script loading promises to the store
+     *
+     * @param arr
+     */
+    addScriptLoadingPromises(arr) {
+        for (const p of arr) {
+            this._scriptLoadingPromises.add(p);
+        }
+    }
+
+    get headersContainer() {
+        if (this._container === document.body) {
+            return document.getElementsByTagName("head")[0];
+        } else {
+            return this._container;
+        }
+    }
+
+    get container() {
+        return this._container;
     }
 
     /**
      * Execute domActions
      */
     doDOMActions() {
-        this.domActions.forEach((f) => f());
+        console.debug('Called doDOMActions');
+
+        return Router.preventOriginalScriptsExec()
+            .then(() => this.loadHeaders());
     }
 
     /**
@@ -139,29 +167,48 @@ export class Router {
      * @returns Promise
      */
     executeScript(script) {
-        let ret = null;
-
         console.debug('Checking script: ', script);
 
-        if (!script._setToExecute) {
-            console.debug('Executing script: ', script);
-            try {
-                if (script.src) {
-                    ret = import(script.src);
-                }
-                else if (script.type !== "module") {
-                    ret = new Promise((resolve) => {
-                        eval(script.innerHTML);
-                        resolve();
-                    });
-                }
-            }
-            catch (ex) {
-                console.error(ex, script);
-            }
-            script._setToExecute = true;
+        // Check whether the script has already been made to execute somehow before
+        if ('loadPromise' in script) {
+            return script.loadPromise;
         }
-        return ret;
+
+        // Scripts that were added normally don't execute (?).
+        // Instead, we need to copy the source over into an actual script element.
+        const script2 = document.createElement('script');
+
+        console.debug('Executing script: ', script);
+        try {
+            // The below code might be better if we can get it to work.
+            // if (script.src) {
+            //     console.log('Using module');
+            //     ret = import(script.src);
+            // }
+            // else if (script.type !== "module") {
+            //     ret = new Promise((resolve) => {
+            //         console.warn("Using eval");
+            //         eval(script.innerHTML);
+            //         resolve();
+            //     });
+            // }
+
+            // Before we do anything with this script, we set its onload event to mark the script as executed.
+            script2.loadPromise = new Promise((resolve) => {
+                script2.onload = resolve;
+            }).then(() => {
+                console.debug('Script execution promise resolving, total: ', this._scriptLoadingPromises);
+            });
+
+            // Copy the script contents (url) and append the element.
+            script2.src = script.src;
+            this.headersContainer.appendChild(script2);
+
+        }
+        catch (ex) {
+            console.error(ex, script);
+        }
+        return script2.loadPromise;
     }
 
     static getHeaders() {
@@ -179,8 +226,7 @@ export class Router {
      * @constructor
      */
     checkScripts() {
-
-        console.log('called checkScripts');
+        console.debug('Called checkScripts');
 
         // Be sure that when we are here, our after-DOM-loaded tasks are done
         return this.wpuiDOMActionsFinished.then(() => {
@@ -189,13 +235,13 @@ export class Router {
             const scripts = Array.from(document.getElementsByTagName("script"));
 
             // Get the promises for all the scripts to run
-            const scriptPromises = scripts.map((script) => this.executeScript(script));
+            this.addScriptLoadingPromises(scripts.map((script) => this.executeScript(script)));
 
             // Return a promise that resolves when all the scripts finish running
             const finish = () => {
-                console.log('checkScripts promise being resolved');
+                console.debug('checkScripts promise being resolved');
             };
-            return Promise.all(scriptPromises).then(finish);
+            return this.allScriptsLoaded.then(finish);
         });
     };
 
@@ -205,21 +251,29 @@ export class Router {
     static preventOriginalScriptsExec() {
         console.debug('Called preventOriginalScriptsExec');
 
-        // Be sure that when we are here, the DOM (so all script tags) has been interpreted
-        document.readyStateInteractive.then(() => {
+        return new Promise((resolve) => {
+            // Be sure that when we are here, the DOM (so all script tags) has been interpreted
+            document.readyStateInteractive.then(() => {
 
-            // Get all the scripts
-            const scripts = Array.from(document.getElementsByTagName("script"));
+                // Get all the scripts
+                const scripts = Array.from(document.getElementsByTagName("script"));
 
-            // Mark all scripts we can find right now as already executed by the browser.
-            scripts.forEach((script) => {
-                console.debug('Setting script as executed already: ', script);
-                script._setToExecute = true;
+                // Mark all scripts we can find right now as already executed by the browser.
+                scripts.forEach((script) => {
+                    console.debug('Setting script as executed already: ', script);
+
+                    // We don't know when the script will load but probably it'll be ok.
+                    // A script is marked as 'already handled' when it has a loadPromise.
+                    script.loadPromise = Promise.resolve();
+                });
+
+                resolve();
             });
         });
     }
 
     getPageFromURL(requestedPath) {
+        console.debug('Called getPageFromURL');
 
         requestedPath = requestedPath.replace("/" + this.basePath, "");
         requestedPath = requestedPath.replace(this.basePath + "/", "");
@@ -241,6 +295,8 @@ export class Router {
     }
 
     setPageFromUrl(url, noPush) {
+        console.debug('Called setPageFromURL');
+
         const actualPage = this.getPageFromURL(url);
         this.currentFrame.setPage(actualPage);
         const stateObj = {
@@ -251,55 +307,50 @@ export class Router {
         }
     }
 
-    Route() {
-        if (this.headersLoaded) {
-            this.directRoute();
-        }
-        else {
-            window.setTimeout(() => this.directRoute(), 1);
-        }
-    }
+    route() {
+        console.debug('Called route');
 
-    directRoute() {
-        console.log('directRoute');
-        const actualPage = this.getPageFromURL(document.location.pathname.replace("/" + this.basePath + "/", ""));
-        const framePath  = this.basePath + "/frames/" + this.frame + "/" + this.frame + "." + this.defaultFileExtension;
-        const me         = this;
-        import (document.location.origin + "/" + framePath)
-            .then(({default: frameBase}) => {
-                const frame     = new frameBase(me.basePath);
-                me.currentFrame = frame;
-                frame.addOnPartLoadedHandlers(me, me.framePartLoaded);
-                me.clearContainer();
+        // Wait for scripts. Not sure if we can proceed, but it seems to break things.
+        this.allScriptsLoaded.then(() => {
+            const actualPage = this.getPageFromURL(document.location.pathname.replace("/" + this.basePath + "/", ""));
+            const framePath  = this.basePath + "/frames/" + this.frame + "/" + this.frame + "." + this.defaultFileExtension;
+            const me         = this;
+            import (document.location.origin + "/" + framePath)
+                .then(({default: frameBase}) => {
+                    const frame     = new frameBase(me.basePath);
+                    me.currentFrame = frame;
+                    frame.addOnPartLoadedHandlers(me, me.framePartLoaded);
+                    me.clearContainer();
 
-                frame.getContent().then(html => {
-                    console.debug('Frame.getContent finished.');
+                    frame.getContent().then(html => {
+                        console.debug('Frame.getContent finished.');
 
-                    const div     = document.createElement('div');
-                    div.innerHTML = html.trim();
+                        const div     = document.createElement('div');
+                        div.innerHTML = html.trim();
 
-                    // Change this to div.childNodes to support multiple top-level nodes
-                    for (let i = 0; i < div.childNodes.length; i++) {
-                        const element = div.childNodes[i];
-                        me.container.appendChild(element);
-                    }
+                        // Change this to div.childNodes to support multiple top-level nodes
+                        for (let i = 0; i < div.childNodes.length; i++) {
+                            const element = div.childNodes[i];
+                            me.container.appendChild(element);
+                        }
 
-                    // Wait for all scripts to have loaded
-                    console.debug('Calling checkScripts from directRoute');
-                    const scriptsReady = me.checkScripts();
-                    Promise.all([scriptsReady, document.readyStateComplete]).then(() => {
-                        console.debug('Calling Frame.onLoaded');
-                        frame.onLoaded();
-                        frame.setPage(actualPage);
+                        // Wait for all the document to finish loading.
+                        // Note that we waited for scripts all they way at the top of route().
+                        document.readyStateComplete.then(() => {
+                            console.debug('Calling Frame.onLoaded');
+                            frame.onLoaded();
+                            frame.setPage(actualPage);
+                        });
                     });
                 });
-            });
+        });
     }
 
     /**
      * Runs after the frame has loaded some stuff.
      */
     framePartLoaded() {
+        console.debug('Called framePartLoaded');
 
         console.debug('Calling checkScripts from framePartLoaded');
         // noinspection JSIgnoredPromiseFromCall
@@ -328,52 +379,47 @@ export class Router {
     }
 
     clearContainer() {
-        this.container.innerHTML = "";
-        if (this.container !== document.body) {
+        console.debug('Called clearContainer');
+
+        this._container.innerHTML = "";
+        if (this._container !== document.body) {
             this.loadHeaders();
         }
     }
 
+    /**
+     * Takes links in html-format from a list and places them in the header (or another container)
+     */
     loadHeaders() {
-        const me              = this;
-        let containingElement = this.container;
-        if (this.container === document.body) {
-            containingElement = document.getElementsByTagName("head")[0];
-        }
-        for (let i = 0; i < this.headers.length; i++) {
+        console.debug('Called loadHeaders');
 
+
+        const newScriptPromises = [];
+        this.headers.forEach((h) => {
+
+            // Create a dummy element
             const div     = document.createElement('div');
-            div.innerHTML = this.headers[i].trim();
+            // Make the browser parse the html code in h, by adding it into the dummy.
+            div.innerHTML = h.trim();
+            // Now we have an element object for the header. Assume the html was just one element.
             const element = div.firstChild;
-            // Change this to div.childNodes to support multiple top-level nodes
-            if (element && element.src) {
-                const script  = document.createElement('script');
-                script.onload = function() {
-                    this._setToExecute = true;
-                    if (Router.checkHeadersLoaded()) {
-                        me.headersLoaded = true;
-                    }
-                };
-                script.src    = element.src;
-                containingElement.appendChild(script);
-            }
-            else {
-                containingElement.appendChild(element);
-            }
-        }
-    }
 
-    static checkHeadersLoaded() {
-        const tags = document.getElementsByTagName("script");
-        for (let i = 0; i < tags.length; i++) {
-            if (!tags[i]._setToExecute) {
-                return false;
+            if (element && element.src) {
+
+                // If the element is a script, we need to do stuff.
+                newScriptPromises.push(this.executeScript(element));
+            } else {
+
+                // For stylesheets and such just add it.
+                this.headersContainer.appendChild(element);
             }
-        }
-        return true;
+        });
+        this.addScriptLoadingPromises(newScriptPromises);
     }
 
     fetchURL(url, callback) {
+        console.debug('Called fetchURL');
+
         fetch(url)
             .then((response) => response.text())
             .then((html) => callback(html));

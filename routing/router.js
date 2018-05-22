@@ -59,6 +59,13 @@ document.readyStateComplete = new Promise((resolve) => {
 export class Router {
     constructor() {
 
+        /**
+         * Key/value pairs from page name to frame name to override the default frame. Used in subclass.
+         *
+         * @type {{string: string}}
+         */
+        this.frameOverrides = {};
+
         this._scriptLoadingPromises = new Set();
 
         if (arguments[0]) {
@@ -297,8 +304,14 @@ export class Router {
     setPageFromUrl(url, noPush) {
         console.debug('Called setPageFromURL');
 
-        const actualPage = this.getPageFromURL(url);
-        this.currentFrame.setPage(actualPage);
+        const actualPage   = this.getPageFromURL(url);
+        const frameForPage = this.frameForPage(actualPage);
+        if (frameForPage !== this.currentFrameName) {
+            this.routeTo(actualPage);
+        } else {
+            this.currentFrameObject.setPage(actualPage);
+        }
+
         const stateObj = {
             page: actualPage
         };
@@ -307,18 +320,37 @@ export class Router {
         }
     }
 
+    frameForPage(page) {
+        return (page in this.frameOverrides) ? this.frameOverrides[page] : this.frame;
+    }
+
+    framePath(frame) {
+        return this.basePath + "/frames/" + frame + "/" + frame + "." + this.defaultFileExtension;
+    }
+
     route() {
         console.debug('Called route');
 
         // Wait for scripts. Not sure if we can proceed, but it seems to break things.
         this.allScriptsLoaded.then(() => {
             const actualPage = this.getPageFromURL(document.location.pathname.replace("/" + this.basePath + "/", ""));
-            const framePath  = this.basePath + "/frames/" + this.frame + "/" + this.frame + "." + this.defaultFileExtension;
-            const me         = this;
+            this.routeTo(actualPage);
+        });
+    }
+
+    routeTo(page) {
+        console.debug('Called routeTo');
+
+        // Wait for scripts. Not sure if we can proceed, but it seems to break things.
+        this.allScriptsLoaded.then(() => {
+            const frameName = this.frameForPage(page);
+            const framePath = this.framePath(frameName);
+            const me        = this;
             import (document.location.origin + "/" + framePath)
                 .then(({default: frameBase}) => {
-                    const frame     = new frameBase(me.basePath);
-                    me.currentFrame = frame;
+                    const frame           = new frameBase(me.basePath);
+                    me.currentFrameObject = frame;
+                    me.currentFrameName   = frameName;
                     frame.addOnPartLoadedHandlers(me, me.framePartLoaded);
                     me.clearContainer();
 
@@ -328,10 +360,8 @@ export class Router {
                         const div     = document.createElement('div');
                         div.innerHTML = html.trim();
 
-                        // Change this to div.childNodes to support multiple top-level nodes
-                        for (let i = 0; i < div.childNodes.length; i++) {
-                            const element = div.childNodes[i];
-                            me.container.appendChild(element);
+                        for (let i = div.childNodes.length; i > 0; i--) {
+                            me.container.appendChild(div.childNodes[0]);
                         }
 
                         // Wait for all the document to finish loading.
@@ -339,7 +369,7 @@ export class Router {
                         document.readyStateComplete.then(() => {
                             console.debug('Calling Frame.onLoaded');
                             frame.onLoaded();
-                            frame.setPage(actualPage);
+                            frame.setPage(page);
                         });
                     });
                 });
@@ -375,7 +405,7 @@ export class Router {
                 };
             }
         }
-        this.currentFrame.loadElements();
+        this.currentFrameObject.loadElements();
     }
 
     clearContainer() {

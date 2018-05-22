@@ -12,8 +12,12 @@ from './element.js'
 export class Frame extends ContentBase {
     constructor(basePath, framename, pageContentID) {
         super();
-        this.contentFile = "/" + basePath + "/frames/" + framename + "/" + framename + ".html";
-        this.frameBase = "/" + basePath + "/frames/" + framename;
+        if(basePath.length>0)
+            this.contentFile = "/" + basePath + "/frames/" + framename + "/" + framename + ".html";
+        else this.contentFile = "/frames/" + framename + "/" + framename + ".html";
+        if(basePath.length>0)
+            this.frameBase = "/" + basePath + "/frames/" + framename;
+        else this.frameBase = "/frames/" + framename;
         this.basePath = basePath;
         this.name = framename;
         this.pages = [];

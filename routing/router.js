@@ -57,8 +57,16 @@ document.readyStateComplete = new Promise((resolve) => {
 });
 
 export class Router {
+    static getLanguage(){
+        var lang = localStorage.getItem("wpui:language");
+        if (lang)
+            return lang;
+        else return "en";
+    }
+    static setLanguage(lang){
+        localStorage.setItem("wpui:language",lang);
+    }
     constructor() {
-
         /**
          * Key/value pairs from page name to frame name to override the default frame. Used in subclass.
          *
@@ -387,9 +395,11 @@ export class Router {
         this.checkScripts();
 
         if (this.catchNavigation) {
+
             const me = this;
             const ls = document.links, numLinks = ls.length;
             for (let i = 0; i < numLinks; i++) {
+              if (href.indexOf("/#") == -1) {
                 ls[i].onclick = function() {
                     if (this.hostname !== document.location.hostname) {
                         return true;
@@ -402,7 +412,9 @@ export class Router {
                         return true;
                     }
 
-                };
+
+                    };
+                }
             }
         }
         this.currentFrameObject.loadElements();

@@ -7,7 +7,10 @@ from './contentBase.js'
 export class Page extends ContentBase {
     constructor(basePath, framename, pagename) {
         super();
-        this.contentFile = "/" + basePath + "/frames/" + framename + "/pages/" + pagename + "/" + pagename + ".html";
+        if(basePath.length>0)
+            this.contentFile = "/" + basePath + "/frames/" + framename + "/pages/" + pagename + "/" + pagename + ".html";
+        else
+            this.contentFile = "/frames/" + framename + "/pages/" + pagename + "/" + pagename + ".html";
         this.frame = null;
     }
 

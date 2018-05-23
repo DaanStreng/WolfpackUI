@@ -29,17 +29,27 @@ document.WPUIglobalEval = function() {
 
 
 export class Router {
+    static getLanguage(){
+        var lang = localStorage.getItem("wpui:language");
+        if (lang)
+            return lang;
+        else return "en";
+    }
+    static setLanguage(lang){
+        localStorage.setItem("wpui:language",lang);
+    }
     constructor() {
         var me2 = this;
+     
         var scripts = document.getElementsByTagName("script");
         for (var i = 0; i < scripts.length; i++) {
             scripts[i]._executed2 = true;
-            var checkLocalLoad = function(){
+            var checkLocalLoad = function() {
                 scripts[i]._executed2 = true;
                 me2.checkHeadersLoaded();
             }
             scripts[i].onload = checkLocalLoad();
-            window.setTimeout(checkLocalLoad,1000);
+            window.setTimeout(checkLocalLoad, 1000);
         }
 
 
@@ -127,7 +137,7 @@ export class Router {
             var me = this;
             var timesTried = 0;
             var interval = window.setInterval(function() {
-                if(me.checkHeadersLoaded()||timesTried>=10){
+                if (me.checkHeadersLoaded() || timesTried >= 10) {
                     window.clearInterval(interval);
                     me.directRoute();
                 }
@@ -178,19 +188,21 @@ export class Router {
             var me = this;
             for (var ls = document.links, numLinks = ls.length, i = 0; i < numLinks; i++) {
                 var href = ls[i].href;
-                ls[i].onclick = function() {
-                    if (this.hostname != document.location.hostname) {
-                        return true;
-                    }
-                    try {
-                        me.SetPageFromUrl(this.pathname);
-                        return false;
-                    }
-                    catch (ex) {
-                        return true;
-                    }
+                if (href.indexOf("/#") == -1) {
+                    ls[i].onclick = function() {
+                        if (this.hostname != document.location.hostname) {
+                            return true;
+                        }
+                        try {
+                            me.SetPageFromUrl(this.pathname);
+                            return false;
+                        }
+                        catch (ex) {
+                            return true;
+                        }
 
-                };
+                    };
+                }
             }
         }
         this.currentFrame.loadElements();

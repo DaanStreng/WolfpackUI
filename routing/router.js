@@ -1,6 +1,6 @@
 'use strict';
 /* global fetch */
-import {Frame} from './frame.js';
+import { Frame } from './frame.js';
 
 console.info('### Enable the \'Verbose\' log level to see debug messages. ###');
 
@@ -57,14 +57,14 @@ document.readyStateComplete = new Promise((resolve) => {
 });
 
 export class Router {
-    static getLanguage(){
+    static getLanguage() {
         var lang = localStorage.getItem("wpui:language");
         if (lang)
             return lang;
         else return "en";
     }
-    static setLanguage(lang){
-        localStorage.setItem("wpui:language",lang);
+    static setLanguage(lang) {
+        localStorage.setItem("wpui:language", lang);
     }
     constructor() {
         /**
@@ -81,7 +81,8 @@ export class Router {
         }
         if (arguments[1]) {
             this.homePage = arguments[1];
-        } else {
+        }
+        else {
             this.homePage = "home";
         }
         if (arguments[2]) {
@@ -102,16 +103,18 @@ export class Router {
         }
         if (arguments[4]) {
             this._container = arguments[4];
-        } else {
+        }
+        else {
             this._container = document.body;
         }
         if (arguments[5]) {
             this.headers = arguments[5];
-        } else {
+        }
+        else {
             this.headers = this.constructor.getHeaders();
         }
         this.headersContainer.Router = this;
-        this.catchNavigation         = true;
+        this.catchNavigation = true;
         window.addEventListener("popstate", () => {
             this.setPageFromUrl(window.location.pathname, true);
         });
@@ -155,7 +158,8 @@ export class Router {
     get headersContainer() {
         if (this._container === document.body) {
             return document.getElementsByTagName("head")[0];
-        } else {
+        }
+        else {
             return this._container;
         }
     }
@@ -297,7 +301,7 @@ export class Router {
             requestedPath = requestedPath.substr(1, requestedPath.length - 1);
         }
         const slashSplits = requestedPath.split("/");
-        let actualPage    = slashSplits[slashSplits.length - 1];
+        let actualPage = slashSplits[slashSplits.length - 1];
         if (actualPage.trim().length === 0) {
             if (slashSplits.length > 1) {
                 actualPage = slashSplits[slashSplits.length - 2];
@@ -312,11 +316,12 @@ export class Router {
     setPageFromUrl(url, noPush) {
         console.debug('Called setPageFromURL');
 
-        const actualPage   = this.getPageFromURL(url);
+        const actualPage = this.getPageFromURL(url);
         const frameForPage = this.frameForPage(actualPage);
         if (frameForPage !== this.currentFrameName) {
             this.routeTo(actualPage);
-        } else {
+        }
+        else {
             this.currentFrameObject.setPage(actualPage);
         }
 
@@ -353,34 +358,34 @@ export class Router {
         this.allScriptsLoaded.then(() => {
             const frameName = this.frameForPage(page);
             const framePath = this.framePath(frameName);
-            const me        = this;
+            const me = this;
             import (document.location.origin + "/" + framePath)
-                .then(({default: frameBase}) => {
-                    const frame           = new frameBase(me.basePath);
-                    me.currentFrameObject = frame;
-                    me.currentFrameName   = frameName;
-                    frame.addOnPartLoadedHandlers(me, me.framePartLoaded);
-                    me.clearContainer();
+            .then(({ default: frameBase }) => {
+                const frame = new frameBase(me.basePath);
+                me.currentFrameObject = frame;
+                me.currentFrameName = frameName;
+                frame.addOnPartLoadedHandlers(me, me.framePartLoaded);
+                me.clearContainer();
 
-                    frame.getContent().then(html => {
-                        console.debug('Frame.getContent finished.');
+                frame.getContent().then(html => {
+                    console.debug('Frame.getContent finished.');
 
-                        const div     = document.createElement('div');
-                        div.innerHTML = html.trim();
+                    const div = document.createElement('div');
+                    div.innerHTML = html.trim();
 
-                        for (let i = div.childNodes.length; i > 0; i--) {
-                            me.container.appendChild(div.childNodes[0]);
-                        }
+                    for (let i = div.childNodes.length; i > 0; i--) {
+                        me.container.appendChild(div.childNodes[0]);
+                    }
 
-                        // Wait for all the document to finish loading.
-                        // Note that we waited for scripts all they way at the top of route().
-                        document.readyStateComplete.then(() => {
-                            console.debug('Calling Frame.onLoaded');
-                            frame.onLoaded();
-                            frame.setPage(page);
-                        });
+                    // Wait for all the document to finish loading.
+                    // Note that we waited for scripts all they way at the top of route().
+                    document.readyStateComplete.then(() => {
+                        console.debug('Calling Frame.onLoaded');
+                        frame.onLoaded();
+                        frame.setPage(page);
                     });
                 });
+            });
         });
     }
 
@@ -397,20 +402,22 @@ export class Router {
         if (this.catchNavigation) {
 
             const me = this;
-            const ls = document.links, numLinks = ls.length;
+            const ls = document.links,
+                numLinks = ls.length;
             for (let i = 0; i < numLinks; i++) {
-              if (href.indexOf("/#") == -1) {
-                ls[i].onclick = function() {
-                    if (this.hostname !== document.location.hostname) {
-                        return true;
-                    }
-                    try {
-                        me.setPageFromUrl(this.pathname);
-                        return false;
-                    }
-                    catch (ex) {
-                        return true;
-                    }
+                var href = ls[i].href;
+                if (href.indexOf("/#") == -1) {
+                    ls[i].onclick = function() {
+                        if (this.hostname !== document.location.hostname) {
+                            return true;
+                        }
+                        try {
+                            me.setPageFromUrl(this.pathname);
+                            return false;
+                        }
+                        catch (ex) {
+                            return true;
+                        }
 
 
                     };
@@ -440,7 +447,7 @@ export class Router {
         this.headers.forEach((h) => {
 
             // Create a dummy element
-            const div     = document.createElement('div');
+            const div = document.createElement('div');
             // Make the browser parse the html code in h, by adding it into the dummy.
             div.innerHTML = h.trim();
             // Now we have an element object for the header. Assume the html was just one element.
@@ -450,7 +457,8 @@ export class Router {
 
                 // If the element is a script, we need to do stuff.
                 newScriptPromises.push(this.executeScript(element));
-            } else {
+            }
+            else {
 
                 // For stylesheets and such just add it.
                 this.headersContainer.appendChild(element);

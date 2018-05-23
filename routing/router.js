@@ -125,9 +125,14 @@ export class Router {
         }
         else {
             var me = this;
-            window.setTimeout(function() {
-                me.directRoute();
-            }, 1000);
+            var timesTried = 0;
+            var interval = window.setInterval(function() {
+                if(me.checkHeadersLoaded()||timesTried>=10){
+                    window.clearInterval(interval);
+                    me.directRoute();
+                }
+                timesTried++;
+            }, 10);
         }
     }
     directRoute() {

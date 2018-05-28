@@ -12,10 +12,10 @@ from './element.js'
 export class Frame extends ContentBase {
     constructor(basePath, framename, pageContentID) {
         super();
-        if(basePath.length>0)
+        if (basePath.length > 0)
             this.contentFile = "/" + basePath + "/frames/" + framename + "/" + framename + ".html";
         else this.contentFile = "/frames/" + framename + "/" + framename + ".html";
-        if(basePath.length>0)
+        if (basePath.length > 0)
             this.frameBase = "/" + basePath + "/frames/" + framename;
         else this.frameBase = "/frames/" + framename;
         this.basePath = basePath;
@@ -67,19 +67,27 @@ export class Frame extends ContentBase {
     }
     loadElements() {
         var elementNodes = document.querySelectorAll("[wpui-element]");
-        for (var i = 0; i < elementNodes.length; i++) {
-            var currentNode = elementNodes[i];
+        for (let i = 0; i < elementNodes.length; i++) {
+            const currentNode = elementNodes[i];
             if (!currentNode.element) {
-                var element = new Element(this.basePath, this.name, currentNode.getAttribute("wpui-element"));
-                element.addOnPartLoadedHandlers(this, this.onPartLoaded);
-                currentNode.element = element;
-                element.getContent().then(html => {
-                    currentNode.innerHTML = html;
-                    element.onLoaded();
+                const elementname = currentNode.getAttribute("wpui-element");
+                currentNode.element = true;
+                var source = "/" + this.basePath + "/frames/" + this.name + "/elements/" + elementname + "/" + elementname + ".js";
+                source = source.replace("//", "/");
+                import (document.location.origin + source)
+                .then(({ default: frameBase }) => {
+                    var element = new frameBase(this.basePath, this.name, currentNode.getAttribute("wpui-element"));
+                    element.addOnPartLoadedHandlers(this, this.onPartLoaded);
+                    currentNode.element = element;
+                    element.getContent().then(html => {
+                        currentNode.innerHTML = html;
+                        element.domNode = currentNode;
+                        element.onLoaded();
+                    }).catch(error => {
+                        console.error(error);
+                    });
+                });
 
-                }).catch(error => {
-                    console.error(error);
-                })
             }
         }
     }

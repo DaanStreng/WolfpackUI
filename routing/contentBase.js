@@ -5,6 +5,7 @@ import {
 }
 from './router.js'
 export class ContentBase {
+    domNode;
     constructor() {
         this.onPartLoadedHandlers = [];
     }
@@ -46,7 +47,6 @@ export class ContentBase {
                         var fromString = text.substr(text.indexOf("@{"));
                         fromString = fromString.substr(0, fromString.indexOf("}@") + 2);
                         var content = fromString.substr(2, fromString.length - 4);
-                        console.log(content);
                         var fillIn = data[content];
                         if (fillIn) {
                             text = text.replace(fromString, fillIn);

@@ -24,10 +24,14 @@ export class Frame extends ContentBase {
         this.pageContentID = pageContentID;
         this.elements = [];
         this.donetwice = 0;
+        this.onBeforeUnload = function() { return true; };
     }
     get Pages() {
         return this.pages;
     }
+
+
+
     getPage(pagename) {
         var me = this;
 
@@ -50,6 +54,29 @@ export class Frame extends ContentBase {
     }
     setPage(pagename) {
         var me = this;
+        return new Promise(function(resolve, reject) {
+            
+            var result = me.onBeforeUnload();
+            if (typeof(result) === 'boolean') {
+                console.log("shit is function");
+                if (result) {
+                    me.actualLoad(pagename);
+                    resolve();
+                }else{
+                    reject();
+                }
+            }
+            else {
+                console.log("shit is promise");
+                result.then(function() {
+                    me.actualLoad(pagename);
+                    resolve();
+                }).catch(function(error) {reject();})
+            }
+        })
+    }
+    actualLoad(pagename) {
+        var me = this;
         this.getPage(pagename).then(page => {
             page.addOnPartLoadedHandlers(me, me.pageLoaded);
             document.getElementById(me.pageContentID).ContentBase = page;
@@ -58,9 +85,9 @@ export class Frame extends ContentBase {
                 document.getElementById(me.pageContentID).innerHTML = html;
                 page.onLoaded();
             });
-        }).catch(function() {
+        }).catch(function(error) {
             document.getElementById(me.pageContentID).innerHTML = "404";
-        })
+        });
     }
     pageLoaded() {
         this.onPartLoaded();
@@ -69,7 +96,7 @@ export class Frame extends ContentBase {
         const me = this;
         return new Promise(function(resolve, reject) {
             var elementNodes = document.querySelectorAll("[wpui-element]");
-            
+
             for (let i = 0; i < elementNodes.length; i++) {
                 const currentNode = elementNodes[i];
                 if (!currentNode.element) {
@@ -87,7 +114,7 @@ export class Frame extends ContentBase {
                             element.domNode = currentNode
                             element.domNode.element = element;
                             element.onLoaded();
-                            if(i==elementNodes.length-1){
+                            if (i == elementNodes.length - 1) {
                                 resolve();
                             }
                         }).catch(error => {

@@ -321,19 +321,25 @@ export class Router {
 
         const actualPage = this.getPageFromURL(url);
         const frameForPage = this.frameForPage(actualPage);
-        if (frameForPage !== this.currentFrameName) {
-            this.routeTo(actualPage);
-        }
-        else {
-            this.currentFrameObject.setPage(actualPage);
-        }
-
         const stateObj = {
             page: actualPage
         };
-        if (noPush === undefined || !noPush) {
-            window.history.pushState(stateObj, actualPage, url);
+        if (frameForPage !== this.currentFrameName) {
+            this.routeTo(actualPage);
+            if (noPush === undefined || !noPush) {
+                window.history.pushState(stateObj, actualPage, url);
+            }
         }
+        else {
+            this.currentFrameObject.setPage(actualPage).then(function() {
+                if (noPush === undefined || !noPush) {
+                    window.history.pushState(stateObj, actualPage, url);
+                }
+            });
+        }
+
+
+
     }
 
     frameForPage(page) {
@@ -429,7 +435,7 @@ export class Router {
         }
         let me = this;
         this.currentFrameObject.loadElements().then(function() {
-          me.checkScripts();
+            me.checkScripts();
         });
     }
 

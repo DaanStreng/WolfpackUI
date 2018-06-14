@@ -5,9 +5,10 @@ import {
 }
 from './router.js'
 export class ContentBase {
-    domNode;
+ 
     constructor() {
         this.onPartLoadedHandlers = [];
+        this.domNode = 0;
     }
 
     getContent() {

@@ -200,28 +200,31 @@ export class Router {
         console.debug('Executing script: ', script);
         try {
             // The below code might be better if we can get it to work.
-            // if (script.src) {
-            //     console.log('Using module');
-            //     ret = import(script.src);
-            // }
-            // else if (script.type !== "module") {
-            //     ret = new Promise((resolve) => {
-            //         console.warn("Using eval");
-            //         eval(script.innerHTML);
-            //         resolve();
-            //     });
-            // }
+
 
             // Before we do anything with this script, we set its onload event to mark the script as executed.
-            script2.loadPromise = new Promise((resolve) => {
-                script2.onload = resolve;
+            script.loadPromise = new Promise((resolve) => {
+                script.onload = resolve;
             }).then(() => {
                 console.debug('Script execution promise resolving, total: ', this._scriptLoadingPromises);
             });
 
             // Copy the script contents (url) and append the element.
-            script2.src = script.src;
-            this.headersContainer.appendChild(script2);
+            //script2.src = script.src;
+            //this.headersContainer.appendChild(script2);
+            if (script.src) {
+                script2.loadPromise = new Promise((resolve) => {
+                    script2.onload = resolve;
+                }).then(() => {
+                    console.debug('Script execution promise resolving, total: ', this._scriptLoadingPromises);
+                });
+                script2.src = script.src;
+                this.headersContainer.appendChild(script2);
+            }
+            else if (script.type !== "module") {
+                window.eval(script.innerHTML);
+            }
+
 
         }
         catch (ex) {
@@ -424,7 +427,10 @@ export class Router {
                 }
             }
         }
-        this.currentFrameObject.loadElements();
+        let me = this;
+        this.currentFrameObject.loadElements().then(function() {
+          me.checkScripts();
+        });
     }
 
     clearContainer() {

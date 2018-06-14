@@ -66,29 +66,37 @@ export class Frame extends ContentBase {
         this.onPartLoaded();
     }
     loadElements() {
-        var elementNodes = document.querySelectorAll("[wpui-element]");
-        for (let i = 0; i < elementNodes.length; i++) {
-            const currentNode = elementNodes[i];
-            if (!currentNode.element) {
-                const elementname = currentNode.getAttribute("wpui-element");
-                currentNode.element = true;
-                var source = "/" + this.basePath + "/frames/" + this.name + "/elements/" + elementname + "/" + elementname + ".js";
-                source = source.replace("//", "/");
-                import (document.location.origin + source)
-                .then(({ default: frameBase }) => {
-                    var element = new frameBase(this.basePath, this.name, currentNode.getAttribute("wpui-element"));
-                    element.addOnPartLoadedHandlers(this, this.onPartLoaded);
-                    currentNode.element = element;
-                    element.getContent().then(html => {
-                        currentNode.innerHTML = html;
-                        element.domNode = currentNode;
-                        element.onLoaded();
-                    }).catch(error => {
-                        console.error(error);
+        const me = this;
+        return new Promise(function(resolve, reject) {
+            var elementNodes = document.querySelectorAll("[wpui-element]");
+            
+            for (let i = 0; i < elementNodes.length; i++) {
+                const currentNode = elementNodes[i];
+                if (!currentNode.element) {
+                    const elementname = currentNode.getAttribute("wpui-element");
+                    currentNode.element = true;
+                    var source = "/" + me.basePath + "/frames/" + me.name + "/elements/" + elementname + "/" + elementname + ".js";
+                    source = source.replace("//", "/");
+                    import (document.location.origin + source)
+                    .then(({ default: frameBase }) => {
+                        var element = new frameBase(me.basePath, me.name, currentNode.getAttribute("wpui-element"));
+                        element.addOnPartLoadedHandlers(me, me.onPartLoaded);
+                        currentNode.element = element;
+                        element.getContent().then(html => {
+                            currentNode.innerHTML = html;
+                            element.domNode = currentNode
+                            element.domNode.element = element;
+                            element.onLoaded();
+                            if(i==elementNodes.length-1){
+                                resolve();
+                            }
+                        }).catch(error => {
+                            console.error(error);
+                        });
                     });
-                });
 
+                }
             }
-        }
+        });
     }
 }

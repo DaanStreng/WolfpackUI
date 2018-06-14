@@ -58,7 +58,6 @@ export class Frame extends ContentBase {
             
             var result = me.onBeforeUnload();
             if (typeof(result) === 'boolean') {
-                console.log("shit is function");
                 if (result) {
                     me.actualLoad(pagename);
                     resolve();
@@ -67,7 +66,6 @@ export class Frame extends ContentBase {
                 }
             }
             else {
-                console.log("shit is promise");
                 result.then(function() {
                     me.actualLoad(pagename);
                     resolve();

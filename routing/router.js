@@ -415,7 +415,8 @@ export class Router {
                 numLinks = ls.length;
             for (let i = 0; i < numLinks; i++) {
                 var href = ls[i].href;
-                if (href.indexOf("/#") == -1) {
+            
+                if (href.indexOf("#") == -1) {
                     ls[i].onclick = function() {
                         if (this.hostname !== document.location.hostname) {
                             return true;
@@ -431,6 +432,7 @@ export class Router {
 
                     };
                 }
+                
             }
         }
         let me = this;

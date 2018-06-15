@@ -66,6 +66,12 @@ export class Router {
     static setLanguage(lang) {
         localStorage.setItem("wpui:language", lang);
     }
+    getLanguage(){
+        return Router.getLanguage();
+    }
+    setLanguage(lang){
+        Router.setLanguage(lang);
+    }
     constructor() {
         /**
          * Key/value pairs from page name to frame name to override the default frame. Used in subclass.
@@ -115,8 +121,17 @@ export class Router {
         }
         this.headersContainer.Router = this;
         this.catchNavigation = true;
-        window.addEventListener("popstate", () => {
-            this.setPageFromUrl(window.location.pathname, true);
+        window.addEventListener("popstate", (state) => {
+            let result = true;
+            if(this.onNavigateBack){
+                let func = this.onNavigateBack;
+                this.onNavigateBack = false;
+                result = func();
+            }
+            if (result===true)
+                this.setPageFromUrl(window.location.pathname, true);
+            else window.history.pushState(null,null,result)
+            
         });
 
         /**

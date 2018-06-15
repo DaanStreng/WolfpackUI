@@ -67,14 +67,18 @@ Element.prototype.empty = function() {
 // Does not function exactly as jquery's forEach.
 // in the callback, this, does not correspond to the selected element 
 // instead, the value passed to the callback is the element
-NodeList.prototype.forEach = HTMLCollection.prototype.forEach = function(callback) {
+NodeList.prototype.forEach = HTMLCollection.prototype.forEach = Array.prototype.each = function(callback) {
     for (var i = 0; i < this.length; i++) {
         callback(this.item(i));
     }
 };
 
+Array.prototype.item = function(index){
+    return this[index];
+}
+
 // Synonym for forEach
-NodeList.prototype.each = HTMLCollection.prototype.each = function(callback) {
+NodeList.prototype.each = HTMLCollection.prototype.each = Array.prototype.each = function(callback) {
     this.forEach(callback);
 }
 

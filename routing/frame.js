@@ -24,6 +24,8 @@ export class Frame extends ContentBase {
         this.pageContentID = pageContentID;
         this.elements = [];
         this.donetwice = 0;
+        this.totalParts = 0;
+        this.loadedParts = 0;
         this.onBeforeUnload = function() { return true; };
     }
     get Pages() {
@@ -59,6 +61,8 @@ export class Frame extends ContentBase {
             var result = me.onBeforeUnload();
             if (typeof(result) === 'boolean') {
                 if (result) {
+                    me.loadedParts = 0;
+                    me.totalParts = 0;
                     me.actualLoad(pagename).then(function(){
                         resolve();
                     });
@@ -70,6 +74,8 @@ export class Frame extends ContentBase {
             }
             else {
                 result.then(function() {
+                    me.loadedParts = 0;
+                    me.totalParts = 0;
                     me.actualLoad(pagename).then(function(){
                         resolve();
                     });
@@ -82,12 +88,16 @@ export class Frame extends ContentBase {
         super.onLoaded();
         let me = this;
     }
-
+    onPartLoaded(){
+        this.loadedParts++;
+        super.onPartLoaded();
+    }
     actualLoad(pagename) {
         var me = this;
         return new Promise(function(resolve, reject) {
             me.getPage(pagename).then(page => {
                 page.addOnPartLoadedHandlers(me, me.pageLoaded);
+                me.totalParts++;
                 document.getElementById(me.pageContentID).ContentBase = page;
                 page.frame = me;
                 page.getContent().then(html => {
@@ -122,6 +132,7 @@ export class Frame extends ContentBase {
                     var source = "/" + me.basePath + "/frames/" + me.name + "/elements/" + elementname + "/" + elementname + ".js";
                     source = source.replace("//", "/");
                     const kk = i;
+                    me.totalParts++;
                     import (document.location.origin + source)
                     .then(({ default: frameBase }) => {
                         let element = new frameBase(me.basePath, me.name, currentNode.getAttribute("wpui-element"));
@@ -133,6 +144,7 @@ export class Frame extends ContentBase {
                             element.domNode.element = element;
                             element.onLoaded();
                             nodesWithElements++;
+                            
                             if (nodesWithElements == elementNodes.length - 1) {
                                 if (document.querySelectorAll("[wpui-element]").length == elementNodes.length) {
                                     runEnd();

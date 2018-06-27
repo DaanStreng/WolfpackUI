@@ -347,10 +347,20 @@ export class Router {
             }
         }
         else {
+            this.loadingElements = false;
+            var me = this;
             this.currentFrameObject.setPage(actualPage).then(function() {
                 if (noPush === undefined || !noPush) {
                     window.history.pushState(stateObj, actualPage, url);
                 }
+                me.currentFrameObject.loadElements().then(function() {
+                    me.checkScripts();
+                    if (me.loadingCompleted) {
+                        me.loadingCompleted();
+                    }
+
+                });
+                me.loadingElements = true;
             });
         }
 
@@ -378,7 +388,7 @@ export class Router {
 
     routeTo(page) {
         console.debug('Called routeTo');
-
+        this.loadingElements = false;
         // Wait for scripts. Not sure if we can proceed, but it seems to break things.
         this.allScriptsLoaded.then(() => {
             const frameName = this.frameForPage(page);
@@ -401,7 +411,7 @@ export class Router {
                     for (let i = div.childNodes.length; i > 0; i--) {
                         me.container.appendChild(div.childNodes[0]);
                     }
-
+                    me.loadingElements = false;
                     // Wait for all the document to finish loading.
                     // Note that we waited for scripts all they way at the top of route().
                     document.readyStateComplete.then(() => {
@@ -415,6 +425,7 @@ export class Router {
                                 }
 
                             });
+                            me.loadingElements = true;
                         });
                     });
                 });
@@ -462,14 +473,12 @@ export class Router {
             }, 100)
 
         }
-        /* let me = this;
-         this.currentFrameObject.loadElements().then(function() {
-             me.checkScripts();
-             if (me.loadingCompleted) {
-                     me.loadingCompleted();
-                 }
-             
-         });*/
+        if (this.loadingElements) {
+            if (this.onLoadPercentage) {
+                var total = this.currentFrameObject.loadedParts / this.currentFrameObject.totalParts;
+                this.onLoadPercentage(total);
+            }
+        }
     }
 
     clearContainer() {

@@ -58,18 +58,18 @@ document.readyStateComplete = new Promise((resolve) => {
 
 export class Router {
     static getLanguage() {
-        var lang = localStorage.getItem("wpui:language");
+        var lang = localStorage.getItem("wpui-language");
         if (lang)
             return lang;
         else return "en";
     }
     static setLanguage(lang) {
-        localStorage.setItem("wpui:language", lang);
+        localStorage.setItem("wpui-language", lang);
     }
-    getLanguage(){
+    getLanguage() {
         return Router.getLanguage();
     }
-    setLanguage(lang){
+    setLanguage(lang) {
         Router.setLanguage(lang);
     }
     constructor() {
@@ -123,15 +123,15 @@ export class Router {
         this.catchNavigation = true;
         window.addEventListener("popstate", (state) => {
             let result = true;
-            if(this.onNavigateBack){
+            if (this.onNavigateBack) {
                 let func = this.onNavigateBack;
                 this.onNavigateBack = false;
                 result = func();
             }
-            if (result===true)
+            if (result === true)
                 this.setPageFromUrl(window.location.pathname, true);
-            else window.history.pushState(null,null,result)
-            
+            else window.history.pushState(null, null, result)
+
         });
 
         /**
@@ -264,7 +264,7 @@ export class Router {
      */
     checkScripts() {
         console.debug('Called checkScripts');
-
+        var me = this;
         // Be sure that when we are here, our after-DOM-loaded tasks are done
         return this.wpuiDOMActionsFinished.then(() => {
 
@@ -277,6 +277,7 @@ export class Router {
             // Return a promise that resolves when all the scripts finish running
             const finish = () => {
                 console.debug('checkScripts promise being resolved');
+
             };
             return this.allScriptsLoaded.then(finish);
         });
@@ -406,7 +407,15 @@ export class Router {
                     document.readyStateComplete.then(() => {
                         console.debug('Calling Frame.onLoaded');
                         frame.onLoaded();
-                        frame.setPage(page);
+                        frame.setPage(page).then(function() {
+                            frame.loadElements().then(function() {
+                                me.checkScripts();
+                                if (me.loadingCompleted) {
+                                    me.loadingCompleted();
+                                }
+
+                            });
+                        });
                     });
                 });
             });
@@ -426,34 +435,41 @@ export class Router {
         if (this.catchNavigation) {
 
             const me = this;
-            const ls = document.links,
-                numLinks = ls.length;
-            for (let i = 0; i < numLinks; i++) {
-                var href = ls[i].href;
-            
-                if (href.indexOf("#") == -1) {
-                    ls[i].onclick = function() {
-                        if (this.hostname !== document.location.hostname) {
-                            return true;
-                        }
-                        try {
-                            me.setPageFromUrl(this.pathname);
-                            return false;
-                        }
-                        catch (ex) {
-                            return true;
-                        }
+            setTimeout(function() {
+                const ls = document.links,
+                    numLinks = ls.length;
+                for (let i = 0; i < numLinks; i++) {
+                    var href = ls[i].href;
+
+                    if (href.indexOf("#") == -1) {
+                        ls[i].onclick = function() {
+                            if (this.hostname !== document.location.hostname) {
+                                return true;
+                            }
+                            try {
+                                me.setPageFromUrl(this.pathname);
+                                return false;
+                            }
+                            catch (ex) {
+                                return true;
+                            }
 
 
-                    };
+                        };
+                    }
+
                 }
-                
-            }
+            }, 100)
+
         }
-        let me = this;
-        this.currentFrameObject.loadElements().then(function() {
-            me.checkScripts();
-        });
+        /* let me = this;
+         this.currentFrameObject.loadElements().then(function() {
+             me.checkScripts();
+             if (me.loadingCompleted) {
+                     me.loadingCompleted();
+                 }
+             
+         });*/
     }
 
     clearContainer() {

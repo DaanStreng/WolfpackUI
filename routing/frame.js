@@ -55,46 +55,65 @@ export class Frame extends ContentBase {
     setPage(pagename) {
         var me = this;
         return new Promise(function(resolve, reject) {
-            
+
             var result = me.onBeforeUnload();
             if (typeof(result) === 'boolean') {
                 if (result) {
-                    me.actualLoad(pagename);
-                    resolve();
-                }else{
+                    me.actualLoad(pagename).then(function(){
+                        resolve();
+                    });
+                    
+                }
+                else {
                     reject();
                 }
             }
             else {
                 result.then(function() {
-                    me.actualLoad(pagename);
-                    resolve();
-                }).catch(function(error) {reject();})
+                    me.actualLoad(pagename).then(function(){
+                        resolve();
+                    });
+                    
+                }).catch(function(error) { reject(); })
             }
         })
     }
+    onLoaded() {
+        super.onLoaded();
+        let me = this;
+    }
+
     actualLoad(pagename) {
         var me = this;
-        this.getPage(pagename).then(page => {
-            page.addOnPartLoadedHandlers(me, me.pageLoaded);
-            document.getElementById(me.pageContentID).ContentBase = page;
-            page.frame = me;
-            page.getContent().then(html => {
-                document.getElementById(me.pageContentID).innerHTML = html;
-                page.onLoaded();
+        return new Promise(function(resolve, reject) {
+            me.getPage(pagename).then(page => {
+                page.addOnPartLoadedHandlers(me, me.pageLoaded);
+                document.getElementById(me.pageContentID).ContentBase = page;
+                page.frame = me;
+                page.getContent().then(html => {
+                    document.getElementById(me.pageContentID).innerHTML = html;
+                    page.onLoaded();
+                    resolve();
+                });
+            }).catch(function(error) {
+                document.getElementById(me.pageContentID).innerHTML = "404";
+                resolve();
             });
-        }).catch(function(error) {
-            document.getElementById(me.pageContentID).innerHTML = "404";
-        });
+          
+        })
+
+
     }
     pageLoaded() {
         this.onPartLoaded();
     }
     loadElements() {
         const me = this;
+  
         return new Promise(function(resolve, reject) {
-            var elementNodes = document.querySelectorAll("[wpui-element]");
-
+            let elementNodes = document.querySelectorAll("[wpui-element]");
+            let nodesWithElements = 0;
+            const runEnd = resolve;
             for (let i = 0; i < elementNodes.length; i++) {
                 const currentNode = elementNodes[i];
                 if (!currentNode.element) {
@@ -102,9 +121,10 @@ export class Frame extends ContentBase {
                     currentNode.element = true;
                     var source = "/" + me.basePath + "/frames/" + me.name + "/elements/" + elementname + "/" + elementname + ".js";
                     source = source.replace("//", "/");
+                    const kk = i;
                     import (document.location.origin + source)
                     .then(({ default: frameBase }) => {
-                        var element = new frameBase(me.basePath, me.name, currentNode.getAttribute("wpui-element"));
+                        let element = new frameBase(me.basePath, me.name, currentNode.getAttribute("wpui-element"));
                         element.addOnPartLoadedHandlers(me, me.onPartLoaded);
                         currentNode.element = element;
                         element.getContent().then(html => {
@@ -112,14 +132,26 @@ export class Frame extends ContentBase {
                             element.domNode = currentNode
                             element.domNode.element = element;
                             element.onLoaded();
-                            if (i == elementNodes.length - 1) {
-                                resolve();
+                            nodesWithElements++;
+                            if (nodesWithElements == elementNodes.length - 1) {
+                                if (document.querySelectorAll("[wpui-element]").length == elementNodes.length) {
+                                    runEnd();
+                                }
+                                else {
+                                    me.loadElements().then(function() {
+                                        runEnd();
+                                    })
+                                }
                             }
                         }).catch(error => {
                             console.error(error);
                         });
                     });
-
+                }else{
+                    nodesWithElements++;
+                    if(nodesWithElements==elementNodes.length){
+                        runEnd();
+                    }
                 }
             }
         });

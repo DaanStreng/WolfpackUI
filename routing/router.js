@@ -312,7 +312,9 @@ export class Router {
 
     getPageFromURL(requestedPath) {
         console.debug('Called getPageFromURL');
-
+        if(requestedPath.lastIndexOf("#")>requestedPath.lastIndexOf("/")){
+            requestedPath = requestedPath.substr(0,requestedPath.lastIndexOf("#"));
+        }
         requestedPath = requestedPath.replace("/" + this.basePath, "");
         requestedPath = requestedPath.replace(this.basePath + "/", "");
         requestedPath = requestedPath.trim();
@@ -450,9 +452,13 @@ export class Router {
                 const ls = document.links,
                     numLinks = ls.length;
                 for (let i = 0; i < numLinks; i++) {
+                    let ignore = ls[i].getAttribute("wpui-ignore");
+                    if(ignore){
+                        continue;
+                    }
                     var href = ls[i].href;
 
-                    if (href.indexOf("#") == -1) {
+                    if (href.indexOf("#") == -1|| (href.indexOf(document.location.href) == -1 && document.location.href.indexOf(href)==-1)) {
                         ls[i].onclick = function() {
                             if (this.hostname !== document.location.hostname) {
                                 return true;

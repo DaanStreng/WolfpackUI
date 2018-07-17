@@ -31,9 +31,6 @@ export class Frame extends ContentBase {
     get Pages() {
         return this.pages;
     }
-
-
-
     getPage(pagename) {
         var me = this;
 
@@ -63,10 +60,10 @@ export class Frame extends ContentBase {
                 if (result) {
                     me.loadedParts = 0;
                     me.totalParts = 0;
-                    me.actualLoad(pagename).then(function(){
+                    me.actualLoad(pagename).then(function() {
                         resolve();
                     });
-                    
+
                 }
                 else {
                     reject();
@@ -76,10 +73,10 @@ export class Frame extends ContentBase {
                 result.then(function() {
                     me.loadedParts = 0;
                     me.totalParts = 0;
-                    me.actualLoad(pagename).then(function(){
+                    me.actualLoad(pagename).then(function() {
                         resolve();
                     });
-                    
+
                 }).catch(function(error) { reject(); })
             }
         })
@@ -88,7 +85,7 @@ export class Frame extends ContentBase {
         super.onLoaded();
         let me = this;
     }
-    onPartLoaded(){
+    onPartLoaded() {
         this.loadedParts++;
         super.onPartLoaded();
     }
@@ -109,7 +106,7 @@ export class Frame extends ContentBase {
                 document.getElementById(me.pageContentID).innerHTML = "404";
                 resolve();
             });
-          
+
         })
 
 
@@ -119,11 +116,14 @@ export class Frame extends ContentBase {
     }
     loadElements() {
         const me = this;
-  
+
         return new Promise(function(resolve, reject) {
             let elementNodes = document.querySelectorAll("[wpui-element]");
             let nodesWithElements = 0;
             const runEnd = resolve;
+            if(elementNodes.length == 0){
+                runEnd();
+            }
             for (let i = 0; i < elementNodes.length; i++) {
                 const currentNode = elementNodes[i];
                 if (!currentNode.element) {
@@ -144,7 +144,7 @@ export class Frame extends ContentBase {
                             element.domNode.element = element;
                             element.onLoaded();
                             nodesWithElements++;
-                            
+
                             if (nodesWithElements == elementNodes.length - 1) {
                                 if (document.querySelectorAll("[wpui-element]").length == elementNodes.length) {
                                     runEnd();
@@ -159,9 +159,10 @@ export class Frame extends ContentBase {
                             console.error(error);
                         });
                     });
-                }else{
+                }
+                else {
                     nodesWithElements++;
-                    if(nodesWithElements==elementNodes.length){
+                    if (nodesWithElements == elementNodes.length) {
                         runEnd();
                     }
                 }

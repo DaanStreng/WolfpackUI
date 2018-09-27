@@ -482,9 +482,7 @@ export class Router {
                         ls[i].onmouseleave = function(){
                             this.setAttribute("href",this.getAttribute("wpui-href"));
                         }
-                        ls[i].onmouseout = function(){
-                          //  this.setAttribute("href",this.getAttribute("wpui-href"));
-                        }
+                       
                     }
 
                 }

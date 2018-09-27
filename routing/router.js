@@ -457,7 +457,7 @@ export class Router {
                         continue;
                     }
                     var href = ls[i].href;
-
+                    
                     if (href.indexOf("#") == -1|| (href.indexOf(document.location.href) == -1 && document.location.href.indexOf(href)==-1)) {
                         ls[i].onclick = function() {
                             if (this.hostname !== document.location.hostname) {
@@ -470,9 +470,17 @@ export class Router {
                             catch (ex) {
                                 return true;
                             }
-
-
                         };
+                        ls[i].onmouseenter = function(){
+                            this.setAttribute("wpui-href",this.href);
+                            this.setAttribute("href","");
+                        }
+                        ls[i].onmouseleave = function(){
+                            this.setAttribute("href",this.getAttribute("wpui-href"));
+                        }
+                        ls[i].onmouseout = function(){
+                            this.setAttribute("href",this.getAttribute("wpui-href"));
+                        }
                     }
 
                 }

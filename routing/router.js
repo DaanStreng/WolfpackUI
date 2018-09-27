@@ -460,6 +460,9 @@ export class Router {
                     
                     if (href.indexOf("#") == -1|| (href.indexOf(document.location.href) == -1 && document.location.href.indexOf(href)==-1)) {
                         ls[i].onclick = function() {
+                            if(this.getAttribute("wpui-href")){
+                                this.setAttribute("href",this.getAttribute("wpui-href"))
+                            }
                             if (this.hostname !== document.location.hostname) {
                                 return true;
                             }
@@ -473,7 +476,8 @@ export class Router {
                         };
                         ls[i].onmouseenter = function(){
                             this.setAttribute("wpui-href",this.href);
-                            this.setAttribute("href","");
+                            this.removeAttribute("href");
+                            this.style.cursor = "pointer";
                         }
                         ls[i].onmouseleave = function(){
                             this.setAttribute("href",this.getAttribute("wpui-href"));

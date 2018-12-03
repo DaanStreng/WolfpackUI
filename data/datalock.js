@@ -260,9 +260,10 @@ Element.prototype.wpuiFor = function(dataArray) {
     for (var i = 0; i < dataArray.length; i++) {
         var element = originalContent;
         element = me.append(element);
-    
-        if(element.constructor != Text)
+      
+        if(element.constructor != Text){
             element.datalock(dataArray[i]);
+        }
         else element.data = (this.replaceVariablesInString(element.data,dataArray[i],undefined));
     }
 }
@@ -280,9 +281,6 @@ Element.prototype.datalock = function(dataobject) {
     for (var propertyName in dataobject) {
         dataobject.watch(propertyName, this, this.datalockObjectChanged);
     }
-    this.wpuiFill(dataobject);
-
-
     if (this.attr("wpui-for")) {
         var forKey = this.attr("wpui-for");
         if (forKey && dataobject && dataobject.constructor === Array) {
@@ -323,6 +321,7 @@ Element.prototype.replaceVariablesInString = function(originalString, object, pa
             items.push(subSplit);
         }
     }
+  
     for (var j = 0; j < items.length; j++) {
         var key = items[j];
         var value;

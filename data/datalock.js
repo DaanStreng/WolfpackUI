@@ -214,7 +214,7 @@ Element.prototype.wpuiIf = function(dataObject, key) {
                     myElm.empty();
                 }
             }
-            if (typeof myElm.attr("wpui-else") !== 'undefined') {
+            if (myElm.hasAttribute("wpui-else")) {
                 var elseContent = myElm.data("wpuiIfContent");
                 if (!elseContent) {
                     elseContent = myElm.html();
@@ -236,7 +236,7 @@ Element.prototype.wpuiIf = function(dataObject, key) {
         this.html(ifContent);
         siblings.each(function(myElm) {
             if(myElm.attr)
-            if (myElm.attr("wpui-elseif") || typeof myElm.attr("wpui-else") !== 'undefined') {
+            if (myElm.attr("wpui-elseif") || myElm.hasAttribute("wpui-else")) {
                 var previousContent = myElm.data("wpuiIfContent");
                 if (!previousContent) {
                     previousContent = myElm.html();

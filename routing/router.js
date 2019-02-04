@@ -457,7 +457,7 @@ export class Router {
                         continue;
                     }
                     var href = ls[i].href;
-                    
+                    ls[i].setAttribute("safe-ref",ls[i].getAttribute("href"));
                     if (href.indexOf("#") == -1|| (href.indexOf(document.location.href) == -1 && document.location.href.indexOf(href)==-1)) {
                         ls[i].onclick = function() {
                             if(this.getAttribute("wpui-href")){
@@ -475,12 +475,20 @@ export class Router {
                             }
                         };
                         ls[i].onmouseenter = function(){
-                            this.setAttribute("wpui-href",this.href);
+                            if(this.href != null && this.href){
+                                this.setAttribute("wpui-href",this.href);
+                            }else{
+                               this.setAttribute("wpui-href",this.getAttribute("safe-ref")); 
+                            }
                             this.removeAttribute("href");
                             this.style.cursor = "pointer";
                         }
                         ls[i].onmouseleave = function(){
-                            this.setAttribute("href",this.getAttribute("wpui-href"));
+                            var ref = this.getAttribute("wpui-href");
+                            if(!ref || ref == null || ref == undefined){
+                                this.setAttribute("href",this.getAttribute("safe-ref"));
+                            }else
+                                this.setAttribute("href",this.getAttribute("wpui-href"));
                         }
                        
                     }
